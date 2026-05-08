@@ -594,7 +594,7 @@
     }
   }
   function fmtDateTime(ms){ if(!ms) return ''; try { var d = new Date(ms); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); } catch(e){ return ''; } }
-  loadFavsFromServer();
+  // loadFavsFromServer() is called at init bottom with .then() to control initial view
 
   function $(id){ return document.getElementById(id); }
   function esc(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -1090,10 +1090,19 @@
 
     var rows = lastRows || [];
     if(!rows.length){
-      $('toolbar').style.display='none'; $('cards').innerHTML=''; $('table').style.display='none';
+      var hasFavs = Object.keys(favs).length > 0;
+      // Even with no screening rows, keep toolbar visible if there are favs,
+      // so the 卡片/表格/收藏 seg switch stays reachable.
+      $('toolbar').style.display = hasFavs ? 'flex' : 'none';
+      if(hasFavs){
+        $('counts').innerHTML = '<span class="badge"><strong>' + Object.keys(favs).length + '</strong>位收藏</span><span class="badge">未搜索</span>';
+      }
+      $('cards').innerHTML=''; $('table').style.display='none';
       $('discovery').innerHTML = discoveryBanner();
       $('empty').style.display='block';
-      $('empty').innerHTML = '<div class="big">🔍</div><div class="t">还没有结果</div><div class="h">默认是发现模式：填好上方关键词，点【开始】。</div>';
+      $('empty').innerHTML = hasFavs
+        ? '<div class="big">📁</div><div class="t">没有当前搜索结果</div><div class="h">点上面 <strong>收藏(' + Object.keys(favs).length + ')</strong> 看你的常用博主库；或填关键词跑一次新搜索。</div>'
+        : '<div class="big">🔍</div><div class="t">还没有结果</div><div class="h">默认是发现模式：填好上方关键词，点【开始】。</div>';
       return;
     }
     $('empty').style.display='none';
@@ -1522,8 +1531,12 @@
   };
 
   $('empty').style.display='block';
-  updateFavCount();
   refreshMailStatus();
+  // Server-loaded favorites: if user already has favs, jump straight into the 收藏 view
+  loadFavsFromServer().then(function(){
+    if(Object.keys(favs).length > 0){ setView('favs'); }
+    else { render(); }
+  });
 })();
 </script>
 </body>
