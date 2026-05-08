@@ -219,8 +219,15 @@ class Handler(BaseHTTPRequestHandler):
         if not creator or not creator.get("username"):
             return self._send_json(400, {"ok": False, "error": "creator data required"})
         model = (payload.get("model") or "").strip() or None
+        user_context = (payload.get("userContext") or "").strip()
+        prompt_template = payload.get("promptTemplate") or None
         try:
-            data = ai_recommend_for_creator(api_key, creator, model=model)
+            data = ai_recommend_for_creator(
+                api_key, creator,
+                model=model,
+                user_context=user_context,
+                prompt_template=prompt_template,
+            )
         except ValueError as e:
             return self._send_json(400, {"ok": False, "error": str(e)})
         except Exception as e:

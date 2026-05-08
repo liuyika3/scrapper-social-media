@@ -157,16 +157,38 @@
     .actions .ai-btn { background:linear-gradient(135deg,#7c5cff,#3d8bfd); border:none; color:#fff; width:auto; padding:0 12px; flex:0 0 auto; font-size:0.78rem; box-shadow:none; }
     .actions .ai-btn:hover:not(:disabled) { box-shadow:0 4px 12px rgba(124,92,255,0.35); }
     .ai-host { padding:6px 16px 8px; }
-    .ai-card { background:linear-gradient(135deg,rgba(124,92,255,0.12),rgba(61,139,253,0.08)); border:1px solid rgba(124,92,255,0.3); border-radius:10px; padding:12px; font-size:0.84rem; color:var(--text2); }
-    .ai-card .hd { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:0.82rem; font-weight:600; }
-    .ai-card .verdict { padding:3px 10px; border-radius:999px; font-size:0.74rem; font-weight:700; }
-    .ai-card .verdict.yes { background:var(--good-bg); color:var(--good); border:1px solid var(--good-bd); }
-    .ai-card .verdict.maybe { background:rgba(255,181,71,0.16); color:#ffd28a; border:1px solid rgba(255,181,71,0.4); }
-    .ai-card .verdict.no { background:var(--bad-bg); color:#ffb4ab; border:1px solid var(--bad-bd); }
-    .ai-card .row { display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
-    .ai-card .pill { background:var(--panel3); padding:3px 9px; border-radius:6px; font-size:0.75rem; color:var(--text); border:1px solid var(--border); font-variant-numeric:tabular-nums; }
-    .ai-card ul { margin:6px 0 0 18px; padding:0; font-size:0.8rem; }
-    .ai-card .warn { color:#ffb4ab; }
+    .ai-report { background:linear-gradient(135deg,rgba(124,92,255,0.10),rgba(61,139,253,0.06)); border:1px solid rgba(124,92,255,0.32); border-radius:12px; padding:12px 14px; font-size:0.84rem; color:var(--text2); }
+    .ai-report .ai-hd { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+    .ai-report .ai-title { font-weight:700; font-size:0.82rem; color:var(--text); letter-spacing:0.02em; }
+    .ai-report .ai-saved { font-size:0.7rem; color:var(--muted); }
+    .ai-report .ai-verdict { padding:10px 14px; border-radius:10px; margin-bottom:10px; border:1px solid var(--border); }
+    .ai-report .ai-verdict .vlabel { font-weight:700; font-size:1.02rem; margin-bottom:3px; }
+    .ai-report .ai-verdict .vreason { font-size:0.82rem; color:var(--text2); line-height:1.5; }
+    .ai-report .ai-verdict.yes { background:linear-gradient(135deg,rgba(52,199,89,0.16),rgba(52,199,89,0.06)); border-color:var(--good-bd); }
+    .ai-report .ai-verdict.yes .vlabel { color:var(--good); }
+    .ai-report .ai-verdict.maybe { background:linear-gradient(135deg,rgba(255,181,71,0.18),rgba(255,181,71,0.05)); border-color:rgba(255,181,71,0.4); }
+    .ai-report .ai-verdict.maybe .vlabel { color:#ffd28a; }
+    .ai-report .ai-verdict.no { background:linear-gradient(135deg,rgba(255,69,58,0.16),rgba(255,69,58,0.06)); border-color:var(--bad-bd); }
+    .ai-report .ai-verdict.no .vlabel { color:#ffb4ab; }
+    .ai-report .ai-section-ttl { font-size:0.74rem; font-weight:600; color:var(--muted); letter-spacing:0.05em; margin:12px 0 6px; text-transform:uppercase; }
+    .ai-report .ai-section-ttl.warn { color:#ffb4ab; }
+    .ai-report .ai-prices { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+    .ai-report .ai-price { background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:8px 6px; text-align:center; }
+    .ai-report .ai-price .amt { font-weight:700; font-size:1rem; color:#ffd28a; font-variant-numeric:tabular-nums; line-height:1.2; }
+    .ai-report .ai-price .lab { font-size:0.68rem; color:var(--muted); margin-top:3px; }
+    .ai-report .ai-basis { margin-top:6px; font-size:0.76rem; color:var(--muted); line-height:1.5; }
+    .ai-report .ai-insights { display:flex; flex-direction:column; gap:6px; }
+    .ai-report .ai-ins { display:grid; grid-template-columns:auto auto 1fr; gap:8px; align-items:start; background:var(--panel2); border:1px solid rgba(255,255,255,0.04); border-radius:6px; padding:7px 9px; font-size:0.8rem; }
+    .ai-report .ai-ins .ico { font-size:0.95rem; line-height:1.3; }
+    .ai-report .ai-ins .lab { color:var(--muted); font-size:0.74rem; line-height:1.4; padding-top:1px; min-width:48px; }
+    .ai-report .ai-ins .txt { color:var(--text2); line-height:1.4; }
+    .ai-report .ai-tps, .ai-report .ai-warns { margin:0 0 0 0; padding-left:18px; font-size:0.82rem; line-height:1.55; }
+    .ai-report .ai-tps li { margin-bottom:3px; color:var(--text2); }
+    .ai-report .ai-warns li { color:#ffb4ab; }
+    .ai-report .ai-foot { display:flex; gap:6px; margin-top:10px; padding-top:10px; border-top:1px solid var(--border); }
+    .ai-report .ai-foot button { margin:0; min-height:28px; padding:4px 10px; font-size:0.74rem; background:var(--panel2); border:1px solid var(--border); color:var(--muted); box-shadow:none; font-weight:500; }
+    .ai-report .ai-foot button:hover:not(:disabled) { border-color:var(--border2); color:var(--text2); }
+    .ai-report .ai-foot .ai-clear:hover:not(:disabled) { border-color:var(--bad-bd); color:#ffb4ab; }
     .platform-seg { display:inline-flex; border:1px solid var(--border); border-radius:999px; overflow:hidden; padding:3px; background:var(--panel); margin-right:8px; }
     .platform-seg button { width:auto; margin:0; padding:6px 16px; border-radius:999px; background:transparent; color:var(--muted); border:none; font-weight:500; min-height:32px; box-shadow:none; }
     .platform-seg button.active { background:var(--accent-grad); color:#fff; }
@@ -237,6 +259,7 @@
         <div class="sub">填关键词自动发现领域博主，一键起草外联邮件，jovidasmith@gmail.com 直发。</div>
       </div>
       <button type="button" id="tmplBtn" class="ghost" style="margin-top:0; width:auto; padding:8px 14px; font-size:0.82rem; min-height:36px;" title="编辑默认邮件模板">✏ 邮件模板</button>
+      <button type="button" id="aiPromptBtn" class="ghost" style="margin-top:0; width:auto; padding:8px 14px; font-size:0.82rem; min-height:36px;" title="编辑 AI 提示词与上下文">📝 AI 提示词</button>
       <button type="button" id="loginBtn" class="login-btn" style="display:none" title="清掉旧 token 并重新走 Google OAuth">🔑 重新登录</button>
       <div id="acctChip" class="acct-chip" title="点开邮件工具状态"><span class="dot"></span><span id="acctText">检查邮件工具…</span></div>
     </div>
@@ -388,6 +411,32 @@
     </div>
   </div>
 
+  <!-- AI prompt editor modal -->
+  <div class="backdrop" id="aiPromptModal" role="dialog" aria-modal="true" aria-labelledby="aiPromptModalTitle">
+    <div class="modal" role="document">
+      <div class="modal-head">
+        <div class="ttl" style="flex:1">
+          <div class="t1" id="aiPromptModalTitle">AI 提示词 / 上下文</div>
+          <div class="t2">上下文会被插入到提示词的 <code>{{user_context}}</code> 位置。变量：<code>{{creator_json}}</code> = 该博主完整数据 · <code>{{user_context}}</code> = 你的额外说明</div>
+        </div>
+        <button type="button" class="close" id="aiPromptClose" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-status" id="aiPromptStatus" role="status" aria-live="polite"></div>
+        <label for="aiUserContext">额外上下文（每次 AI 评估都会注入）</label>
+        <textarea id="aiUserContext" placeholder="例：我们是 Jovida 健康教练 app，主要受众是 25-35 岁、北美/欧洲都市白领；预算每月 $5K，单条优先 sponsored post，希望博主互动率 ≥3%。有以上特征的优先建议触达。" style="min-height:120px"></textarea>
+        <p class="hint">这段会拼到默认提示词的开头。让 Gemini 知道你的产品定位、预算、受众，给出的建议更精准。</p>
+        <label for="aiPromptText" style="margin-top:14px">提示词模板（高级，一般不用改）</label>
+        <textarea id="aiPromptText" style="min-height:280px; font-family:ui-monospace,Consolas,monospace; font-size:0.78rem"></textarea>
+      </div>
+      <div class="modal-foot">
+        <span class="acct" id="aiPromptSavedHint">默认</span>
+        <button type="button" class="ghost" id="aiPromptReset">恢复默认提示词</button>
+        <button type="button" id="aiPromptSave">保存</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Email composer modal -->
   <div class="backdrop" id="mailModal" role="dialog" aria-modal="true" aria-labelledby="mailModalTitle">
     <div class="modal" role="document">
@@ -440,7 +489,16 @@
   function removeFav(u){ var k = favKey(u); if(favs[k]){ delete favs[k]; saveFavs(); } }
   function setFavStatus(u, status){ var k = favKey(u); var f = favs[k]; if(!f) return; f.status = status; if(status === 'contacted') f.lastContactedAt = Date.now(); saveFavs(); }
   function markContacted(u){ var k = favKey(u); if(!favs[k] && openCreator){ addFav(openCreator); } setFavStatus(u, 'contacted'); }
-  function updateFavCount(){ var n = Object.keys(favs).length; var el = document.getElementById('favCount'); if(el) el.textContent = n ? '(' + n + ')' : ''; }
+  function updateFavCount(){
+    var n = Object.keys(favs).length;
+    var el = document.getElementById('favCount'); if(el) el.textContent = n ? '(' + n + ')' : '';
+    var csv = document.getElementById('csv');
+    if(csv){
+      var hasAny = n > 0 || (typeof lastRows !== 'undefined' && lastRows && lastRows.length);
+      csv.disabled = !hasAny;
+      csv.textContent = n > 0 ? ('导出收藏 CSV (' + n + ')') : '导出 CSV';
+    }
+  }
   function fmtDateTime(ms){ if(!ms) return ''; try { var d = new Date(ms); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); } catch(e){ return ''; } }
   loadFavs();
 
@@ -725,6 +783,7 @@
     var topVids = r.recent_videos_top || [];
     var actions = '<div class="actions">'
       + '<button type="button" class="mail-btn" data-idx="' + idx + '" data-has-email="' + (hasEmail?'1':'0') + '">✉ 起草邮件</button>'
+      + '<button type="button" class="ai-btn" data-idx="' + idx + '" title="Gemini 触达分析">🤖 AI</button>'
       + (topVids.length ? '<button type="button" class="cmt-btn" data-idx="' + idx + '">💬 评论</button>' : '')
       + '<button type="button" class="rm-btn" data-fav-u="' + escAttr(r.username) + '" title="从收藏移除">✕</button>'
       + '</div>';
@@ -830,6 +889,7 @@
         + '<span class="badge"><strong>' + favViewList.filter(function(f){return f.status!=='contacted';}).length + '</strong>未联系</span>';
       $('cards').innerHTML = favViewList.map(function(f,i){ return favCardHtml(f, i); }).join('');
       wireCardActions($('cards'), 'favs');
+      favViewList.forEach(function(f){ if(aiCache[favKey(f.creator.username)]) renderAi(f.creator); });
       return;
     }
 
@@ -850,6 +910,7 @@
       $('cards').style.display='grid'; $('table').style.display='none';
       $('cards').innerHTML = sorted.map(function(r,i){ return cardHtml(r, rows.indexOf(r)); }).join('');
       wireCardActions($('cards'), 'creators');
+      sorted.forEach(function(r){ if(aiCache[favKey(r.username)]) renderAi(r); });
     } else {
       $('cards').style.display='none'; $('table').style.display='block';
       var t = tableHtml(sorted);
@@ -900,47 +961,110 @@
     host.innerHTML = html;
   }
 
-  // ---- AI advice (Gemini) ----
+  // ---- AI advice (Gemini) — persisted to localStorage ----
+  var AI_CACHE_KEY = 'aiAdvice_v2';
   var aiCache = {};
+  try { var raw = localStorage.getItem(AI_CACHE_KEY); if(raw) aiCache = JSON.parse(raw) || {}; } catch(e){ aiCache = {}; }
+  if(!aiCache || typeof aiCache !== 'object') aiCache = {};
+  function saveAiCache(){ try { localStorage.setItem(AI_CACHE_KEY, JSON.stringify(aiCache)); } catch(e){} }
+
+  var DEFAULT_AI_PROMPT_TEMPLATE = '使用后端默认'; // sentinel; real default lives server-side
+
+  function getAiUserContext(){ try { return localStorage.getItem('aiUserContext') || ''; } catch(e){ return ''; } }
+  function getAiPromptOverride(){ try { return localStorage.getItem('aiPromptTemplate') || ''; } catch(e){ return ''; } }
+
   function loadAiAdvice(creator, btn){
     var key = ($('geminiKey').value || '').trim();
     if(!key){ try { key = localStorage.getItem('geminiKey') || ''; } catch(e){} }
     if(!key){ alert('请在 高级 → Gemini API Key 里填入 key（aistudio.google.com/apikey）'); return; }
     try { localStorage.setItem('geminiKey', key); } catch(e){}
     var model = ($('geminiModel').value || '').trim() || null;
-    btn.disabled = true; var orig = btn.textContent; btn.innerHTML = '<span class="spinner"></span>评估…';
+    btn.disabled = true; var orig = btn.innerHTML; btn.innerHTML = '<span class="spinner"></span>分析中…';
     fetch('/api/ai-recommend', { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ geminiKey: key, model: model, creator: creator }) })
+        body: JSON.stringify({
+          geminiKey: key, model: model, creator: creator,
+          userContext: getAiUserContext(),
+          promptTemplate: getAiPromptOverride() || null
+        }) })
       .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, j:j }; }); })
       .then(function(x){
-        btn.disabled = false; btn.textContent = orig;
+        btn.disabled = false; btn.innerHTML = orig;
         if(!x.ok || !x.j.ok){ alert('AI 评估失败：' + (x.j && x.j.error || x.code)); return; }
-        aiCache[favKey(creator.username)] = x.j.advice;
+        aiCache[favKey(creator.username)] = { advice: x.j.advice, savedAt: Date.now(), model: model };
+        saveAiCache();
         renderAi(creator);
       })
-      .catch(function(e){ btn.disabled = false; btn.textContent = orig; alert('网络错误：' + e); });
+      .catch(function(e){ btn.disabled = false; btn.innerHTML = orig; alert('网络错误：' + e); });
   }
+
+  function verdictClass(v){
+    if(!v) return 'maybe';
+    if(v.indexOf('建议触达')>=0 || /^yes/i.test(v)) return 'yes';
+    if(v.indexOf('不建议')>=0 || /^no/i.test(v)) return 'no';
+    return 'maybe';
+  }
+
   function renderAi(creator){
     var host = document.querySelector('.ai-host[data-host="' + (creator.username||'').replace(/"/g,'') + '"]');
     if(!host) return;
-    var a = aiCache[favKey(creator.username)];
-    if(!a) { host.innerHTML = ''; return; }
-    var verdict = (a.recommend_outreach || 'maybe').toLowerCase();
+    var entry = aiCache[favKey(creator.username)];
+    if(!entry) { host.innerHTML = ''; return; }
+    var a = entry.advice || {};
+    var v = a.verdict || a.recommend_outreach || '可考虑';
+    var vc = verdictClass(v);
+    var vReason = a.verdict_reason || a.recommend_reason || '';
     var price = a.suggested_price_usd || {};
+    var pPost = price.single_post != null ? price.single_post : price.post;
+    var pStory = price.story_or_pin != null ? price.story_or_pin : price.story;
+    var pVid = price.co_created_video != null ? price.co_created_video : price.video_collab;
+    var basis = a.price_basis || a.price_reason || '';
+    var insights = [];
+    if(a.audience_insight)    insights.push({ icon:'👥', label:'受众画像',  text:a.audience_insight });
+    if(a.content_insight)     insights.push({ icon:'🎬', label:'内容风格',  text:a.content_insight });
+    if(a.engagement_quality)  insights.push({ icon:'💬', label:'互动质量',  text:a.engagement_quality });
+    if(a.fit_with_jovida)     insights.push({ icon:'🎯', label:'品牌契合',  text:a.fit_with_jovida });
     var tps = a.talking_points || [];
     var warns = a.warnings || [];
-    var html = '<div class="ai-card"><div class="hd">🤖 AI 建议 <span class="verdict ' + esc(verdict) + '">' + esc(verdict.toUpperCase()) + '</span></div>';
-    if(a.recommend_reason) html += '<div>' + esc(a.recommend_reason) + '</div>';
-    html += '<div class="row">';
-    if(price.post != null) html += '<span class="pill">单帖 ~$' + esc(price.post) + '</span>';
-    if(price.story != null) html += '<span class="pill">Story ~$' + esc(price.story) + '</span>';
-    if(price.video_collab != null) html += '<span class="pill">共创 ~$' + esc(price.video_collab) + '</span>';
-    html += '</div>';
-    if(a.price_reason) html += '<div style="margin-top:6px;font-size:0.78rem;color:var(--muted);">' + esc(a.price_reason) + '</div>';
-    if(tps.length){ html += '<div style="margin-top:8px;font-weight:600;font-size:0.78rem;">外联话题</div><ul>'; tps.forEach(function(t){ html += '<li>' + esc(t) + '</li>'; }); html += '</ul>'; }
-    if(warns.length){ html += '<div style="margin-top:8px;font-weight:600;font-size:0.78rem;color:#ffb4ab;">⚠ 警示</div><ul class="warn">'; warns.forEach(function(t){ html += '<li>' + esc(t) + '</li>'; }); html += '</ul>'; }
+    var savedT = entry.savedAt ? fmtDateTime(entry.savedAt) : '';
+
+    var html = '<div class="ai-report">';
+    html +=   '<div class="ai-hd"><span class="ai-title">🤖 AI 触达报告</span>'
+            + '<span class="ai-saved">' + (savedT ? ('保存于 ' + esc(savedT)) : '') + '</span></div>';
+    html +=   '<div class="ai-verdict ' + vc + '">'
+            +   '<div class="vlabel">' + esc(v) + '</div>'
+            +   (vReason ? '<div class="vreason">' + esc(vReason) + '</div>' : '')
+            + '</div>';
+    if(pPost!=null || pStory!=null || pVid!=null){
+      html += '<div class="ai-section-ttl">报价建议</div><div class="ai-prices">';
+      if(pPost!=null)  html += '<div class="ai-price"><div class="amt">$' + esc(pPost) + '</div><div class="lab">单帖</div></div>';
+      if(pStory!=null) html += '<div class="ai-price"><div class="amt">$' + esc(pStory) + '</div><div class="lab">Story / 置顶</div></div>';
+      if(pVid!=null)   html += '<div class="ai-price"><div class="amt">$' + esc(pVid) + '</div><div class="lab">共创视频</div></div>';
+      html += '</div>';
+      if(basis) html += '<div class="ai-basis">依据：' + esc(basis) + '</div>';
+    }
+    if(insights.length){
+      html += '<div class="ai-section-ttl">博主洞察</div><div class="ai-insights">';
+      insights.forEach(function(it){
+        html += '<div class="ai-ins"><span class="ico">' + it.icon + '</span><span class="lab">' + esc(it.label) + '</span><span class="txt">' + esc(it.text) + '</span></div>';
+      });
+      html += '</div>';
+    }
+    if(tps.length){
+      html += '<div class="ai-section-ttl">外联话题（话术钩子）</div><ul class="ai-tps">';
+      tps.forEach(function(t){ html += '<li>' + esc(t) + '</li>'; });
+      html += '</ul>';
+    }
+    if(warns.length){
+      html += '<div class="ai-section-ttl warn">⚠ 警示</div><ul class="ai-warns">';
+      warns.forEach(function(t){ html += '<li>' + esc(t) + '</li>'; });
+      html += '</ul>';
+    }
+    html += '<div class="ai-foot"><button type="button" class="ai-redo" data-redo="' + escAttr(creator.username) + '">↻ 重新分析</button>'
+          + '<button type="button" class="ai-clear" data-clear="' + escAttr(creator.username) + '">✕ 清除</button></div>';
     html += '</div>';
     host.innerHTML = html;
+    var redo = host.querySelector('.ai-redo'); if(redo) redo.onclick = function(){ var b=host.querySelector('.ai-redo'); loadAiAdvice(creator, b); };
+    var clr = host.querySelector('.ai-clear'); if(clr) clr.onclick = function(){ delete aiCache[favKey(creator.username)]; saveAiCache(); host.innerHTML=''; };
   }
 
   // restore Gemini key
@@ -948,6 +1072,40 @@
   try { var gm=localStorage.getItem('geminiModel'); if(gm) $('geminiModel').value=gm; } catch(e){}
   $('geminiKey').addEventListener('change', function(){ try { localStorage.setItem('geminiKey', $('geminiKey').value.trim()); } catch(e){} });
   $('geminiModel').addEventListener('change', function(){ try { localStorage.setItem('geminiModel', $('geminiModel').value.trim()); } catch(e){} });
+
+  // ---- AI prompt editor modal ----
+  var DEFAULT_AI_PROMPT_HINT = '默认提示词在后端，留空即用默认。如要自定义，模板里必须保留 {{user_context}} 和 {{creator_json}} 两个占位符。';
+  function openAiPromptModal(){
+    $('aiUserContext').value = getAiUserContext();
+    $('aiPromptText').value = getAiPromptOverride();
+    $('aiPromptText').placeholder = DEFAULT_AI_PROMPT_HINT;
+    $('aiPromptSavedHint').textContent = (getAiPromptOverride() ? '当前：自定义模板' : '当前：默认模板（后端）') + (getAiUserContext() ? ' + 自定义上下文' : '');
+    setAiPromptStatus('');
+    $('aiPromptModal').classList.add('open');
+    setTimeout(function(){ $('aiUserContext').focus(); }, 50);
+  }
+  function closeAiPromptModal(){ $('aiPromptModal').classList.remove('open'); }
+  function setAiPromptStatus(text, kind){ var el=$('aiPromptStatus'); if(!text){ el.classList.remove('show','info','ok','err'); el.textContent=''; return; } el.className='modal-status show '+(kind||'info'); el.textContent=text; }
+  $('aiPromptBtn').onclick = openAiPromptModal;
+  $('aiPromptClose').onclick = closeAiPromptModal;
+  $('aiPromptSave').onclick = function(){
+    var ctx = $('aiUserContext').value;
+    var tpl = $('aiPromptText').value;
+    if(tpl && (tpl.indexOf('{{creator_json}}') < 0 || tpl.indexOf('{{user_context}}') < 0)){
+      setAiPromptStatus('自定义模板必须保留 {{user_context}} 和 {{creator_json}} 两个占位符', 'err');
+      return;
+    }
+    try { localStorage.setItem('aiUserContext', ctx); if(tpl) localStorage.setItem('aiPromptTemplate', tpl); else localStorage.removeItem('aiPromptTemplate'); } catch(e){}
+    setAiPromptStatus('✓ 已保存。下次 AI 分析会用新设置。', 'ok');
+    $('aiPromptSavedHint').textContent = (tpl ? '当前：自定义模板' : '当前：默认模板（后端）') + (ctx ? ' + 自定义上下文' : '');
+  };
+  $('aiPromptReset').onclick = function(){
+    $('aiPromptText').value = '';
+    try { localStorage.removeItem('aiPromptTemplate'); } catch(e){}
+    setAiPromptStatus('已清空模板覆盖（仍保留你的上下文）', 'info');
+    $('aiPromptSavedHint').textContent = '当前：默认模板（后端）' + (getAiUserContext() ? ' + 自定义上下文' : '');
+  };
+  $('aiPromptModal').addEventListener('click', function(e){ if(e.target === $('aiPromptModal')) closeAiPromptModal(); });
 
   // ---- platform switch ----
   var currentPlatform = 'tiktok';
@@ -1096,6 +1254,7 @@
     if(e.key !== 'Escape') return;
     if($('mailModal').classList.contains('open')) { closeMailModal(); return; }
     if($('tmplModal').classList.contains('open')) { closeTmplModal(); return; }
+    if($('aiPromptModal').classList.contains('open')) { closeAiPromptModal(); return; }
   });
 
   // ---- toolbar ----
@@ -1111,12 +1270,31 @@
   $('appPassword').addEventListener('change', persist);
 
   $('csv').onclick = function(){
-    if(!lastRows || !lastRows.length) return;
-    var fields = ['username','nickname','verified','region','followers','total_hearts','total_videos_lifetime','posts_in_window','avg_play_in_window','required_avg_for_rule','pass_min_followers','pass_view_rule','pass_all','keyword_matched','last_post_at','profile_url','avatar','bio'];
+    // Export the favorites list (the curated set) — falls back to current screening rows if no favs
+    buildFavList();
+    var rows = favViewList.length
+      ? favViewList.map(function(f){
+          var c = f.creator || {};
+          return Object.assign({}, c, {
+            fav_status: f.status || 'uncontacted',
+            fav_added_at: f.addedAt ? fmtDateTime(f.addedAt) : '',
+            fav_last_contacted_at: f.lastContactedAt ? fmtDateTime(f.lastContactedAt) : '',
+            ai_advice_json: (function(){ var a=aiCache[favKey(c.username)]; return a ? JSON.stringify(a.advice) : ''; })()
+          });
+        })
+      : (lastRows||[]).slice();
+    if(!rows.length){ alert('收藏目录为空，且当前没有筛选结果可导出'); return; }
+    var fields = ['platform','username','nickname','verified','region','followers','total_hearts','total_videos_lifetime',
+                  'posts_in_window','avg_play_in_window','required_avg_for_rule',
+                  'pass_min_followers','pass_view_rule','pass_all','keyword_matched',
+                  'last_post_at','profile_url','avatar','bio',
+                  'fav_status','fav_added_at','fav_last_contacted_at','ai_advice_json'];
     var lines = [fields.join(',')];
-    lastRows.forEach(function(r){ lines.push(fields.map(function(c){ var v=r[c]; if(v==null) return ''; var s=String(v); if(/[",\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"'; return s; }).join(',')); });
+    rows.forEach(function(r){ lines.push(fields.map(function(c){ var v=r[c]; if(v==null) return ''; var s=String(v); if(/[",\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"'; return s; }).join(',')); });
     var blob = new Blob(['﻿'+lines.join('\n')], { type:'text/csv;charset=utf-8' });
-    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'creators.csv'; a.click(); URL.revokeObjectURL(a.href);
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = (favViewList.length ? 'favorites_' : 'creators_') + new Date().toISOString().slice(0,10) + '.csv';
+    a.click(); URL.revokeObjectURL(a.href);
   };
 
   $('empty').style.display='block';

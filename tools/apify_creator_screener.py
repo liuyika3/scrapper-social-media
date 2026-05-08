@@ -641,32 +641,59 @@ def call_gemini(api_key: str, prompt: str, *, model: Optional[str] = None, timeo
     return "".join(p.get("text", "") for p in parts)
 
 
-def ai_recommend_for_creator(api_key: str, creator: dict, *, model: Optional[str] = None) -> dict:
+DEFAULT_AI_PROMPT_TEMPLATE = """你是 Jovida（健康/个人教练品牌）的 KOL 投放分析师。{{user_context}}
+
+请基于下面这位博主的真实数据，输出**严格 JSON**（不要 markdown，不要解释，所有字段中文）。语气要专业、克制、像真正的投放分析报告，**不要套话不要废话**。
+
+JSON schema：
+{
+  "verdict": "建议触达" 或 "可考虑" 或 "不建议",
+  "verdict_reason": "≤25字 一句话核心理由",
+  "audience_insight": "≤45字 受众画像（年龄段/地区/兴趣偏好）",
+  "content_insight": "≤45字 内容风格 + 发布节奏",
+  "engagement_quality": "≤35字 互动真实度评估",
+  "fit_with_jovida": "≤35字 与 Jovida 健康教练定位的契合度",
+  "suggested_price_usd": {"single_post": <整数>, "story_or_pin": <整数>, "co_created_video": <整数>},
+  "price_basis": "≤30字 估价依据（CPM 或互动率 + 量级）",
+  "talking_points": ["≤22字", "≤22字", "≤22字"],
+  "warnings": []
+}
+
+约束：
+- talking_points 控制在 2-3 条，每条具体可执行（引用某条视频/某个数据点），不要"内容好"这种泛话
+- warnings 只有真有问题才写（受众错配 / 互动作假 / 账号停更 / 私号率高），没问题就空数组
+- 报价：根据 followers 量级 + avg_play_in_window 与 followers 比值（互动率代理）+ 区域估算；followers<5K 给保守价，>500K 才上四位数
+- 全程中文输出
+
+博主数据：
+{{creator_json}}"""
+
+
+def build_ai_prompt(creator: dict, user_context: str = "", template: Optional[str] = None) -> str:
     summary = {k: creator.get(k) for k in (
         "platform", "username", "nickname", "followers", "total_hearts",
         "total_videos_lifetime", "avg_play_in_window", "posts_in_window",
         "last_post_at", "verified", "region", "bio", "recent_captions_sample",
-        "contacts", "keyword_matched",
+        "contacts", "keyword_matched", "required_avg_for_rule",
     )}
-    prompt = (
-        "You evaluate a TikTok or Instagram influencer for a paid creator-marketing partnership "
-        "by Jovida (a wellness/personal-coaching brand).\n\n"
-        "Decide:\n"
-        "1) Should we reach out? (yes/maybe/no)\n"
-        "2) Suggested USD price ranges: a 60s sponsored post, a story (or 3-day TikTok pin), a co-created video.\n"
-        "3) 2-3 talking points for the cold outreach.\n"
-        "4) Warning flags (audience mismatch, low engagement-to-follower ratio, dormant account, etc).\n\n"
-        "Return STRICT JSON only matching this schema, no prose, no markdown:\n"
-        "{\n"
-        '  "recommend_outreach": "yes|maybe|no",\n'
-        '  "recommend_reason": "...",\n'
-        '  "suggested_price_usd": {"post": 0, "story": 0, "video_collab": 0},\n'
-        '  "price_reason": "...",\n'
-        '  "talking_points": ["...", "..."],\n'
-        '  "warnings": ["..."]\n'
-        "}\n\n"
-        "Creator data:\n" + json.dumps(summary, ensure_ascii=False, indent=2)
+    tpl = template or DEFAULT_AI_PROMPT_TEMPLATE
+    ctx = (user_context or "").strip()
+    ctx_block = ("\n\n额外上下文：" + ctx) if ctx else ""
+    return (
+        tpl.replace("{{user_context}}", ctx_block)
+           .replace("{{creator_json}}", json.dumps(summary, ensure_ascii=False, indent=2))
     )
+
+
+def ai_recommend_for_creator(
+    api_key: str,
+    creator: dict,
+    *,
+    model: Optional[str] = None,
+    user_context: str = "",
+    prompt_template: Optional[str] = None,
+) -> dict:
+    prompt = build_ai_prompt(creator, user_context=user_context, template=prompt_template)
     text = call_gemini(api_key, prompt, model=model)
     try:
         return json.loads(text)
