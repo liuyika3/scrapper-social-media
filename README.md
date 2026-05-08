@@ -1,5 +1,22 @@
 # Scrapper Social Media — TikTok / Instagram 达人发现 + 外联工作台
 
+## 最近更新（2026-05-08）
+
+- **Gmail OAuth 直接发件**：替换掉外部 mail-tool-gmail 依赖，按 Cloud Console 配的 OAuth Client 走 Gmail API。顶部 🔑 按钮一键授权，强制账号选择 + login_hint，避开错号
+- **收藏后端持久化**：换电脑/换浏览器都看到同一份收藏；AI 评估随收藏永久保留
+- **AI 触达报告**：Gemini 给中文结构化报告（建议触达 / 匹配度 0-100 / 三档报价 / 受众&内容洞察 / 外联钩子 / 警示）。提示词与上下文都可在 UI 编辑
+- **跨次搜索去重**：`.seen-creators.json` 记录每次出现的 handle，下次搜索默认跳过；可清除
+- **默认抓 Top 评论**：每个博主带 3 条带头像的近期热门视频热评，标注来源视频链接
+- **IG 修复**：`apify/instagram-scraper` 用 directUrls + 多字段兜底取封面；`/api/img-proxy` 代理 IG CDN 绕 referer 加载头像/封面
+- **CSV 中文表头**：导出的是收藏（不是搜索结果），含 AI 建议、匹配度、报价等
+- **常规挂着**：有收藏的话打开页面默认进收藏视图，无需先搜索
+- **OAuth 体验**：用新标签页（不再用 popup），强制账号选择器，避免选错登录账号
+
+详见 [HANDOFF.md](./HANDOFF.md)。
+
+---
+
+
 本机跑的单页工具：用 **Apify** 按关键词发现 TikTok / Instagram 博主，过滤合格创作者，**Gemini** 给报价与外联建议，一键起草并通过 **Gmail SMTP 直发**外联邮件，全程不离开当前页面。
 
 ---
