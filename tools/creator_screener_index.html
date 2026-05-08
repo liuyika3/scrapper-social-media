@@ -172,9 +172,16 @@
     .ai-report .ai-hd { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
     .ai-report .ai-title { font-weight:700; font-size:0.82rem; color:var(--text); letter-spacing:0.02em; }
     .ai-report .ai-saved { font-size:0.7rem; color:var(--muted); }
-    .ai-report .ai-verdict { padding:10px 14px; border-radius:10px; margin-bottom:10px; border:1px solid var(--border); }
+    .ai-report .ai-verdict { padding:10px 14px; border-radius:10px; margin-bottom:10px; border:1px solid var(--border); display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; }
+    .ai-report .ai-verdict .vmain { min-width:0; }
     .ai-report .ai-verdict .vlabel { font-weight:700; font-size:1.02rem; margin-bottom:3px; }
     .ai-report .ai-verdict .vreason { font-size:0.82rem; color:var(--text2); line-height:1.5; }
+    .ai-report .ai-score { text-align:center; flex-shrink:0; min-width:78px; padding:6px 12px; border-radius:10px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.06); }
+    .ai-report .ai-score .num { font-weight:800; font-size:1.65rem; line-height:1; font-variant-numeric:tabular-nums; letter-spacing:-0.02em; }
+    .ai-report .ai-score .lab { font-size:0.62rem; color:var(--muted); margin-top:3px; letter-spacing:0.06em; text-transform:uppercase; }
+    .ai-report .ai-verdict.yes .ai-score .num { color:var(--good); }
+    .ai-report .ai-verdict.maybe .ai-score .num { color:#ffd28a; }
+    .ai-report .ai-verdict.no .ai-score .num { color:#ffb4ab; }
     .ai-report .ai-verdict.yes { background:linear-gradient(135deg,rgba(52,199,89,0.16),rgba(52,199,89,0.06)); border-color:var(--good-bd); }
     .ai-report .ai-verdict.yes .vlabel { color:var(--good); }
     .ai-report .ai-verdict.maybe { background:linear-gradient(135deg,rgba(255,181,71,0.18),rgba(255,181,71,0.05)); border-color:rgba(255,181,71,0.4); }
@@ -336,7 +343,6 @@
           </div>
         </div>
 
-        <label class="check" style="margin-top:8px; padding:8px 10px; background:rgba(255,181,71,0.08); border:1px solid rgba(255,181,71,0.2); border-radius:8px; color:#ffd28a;"><input type="checkbox" id="downloadTopVideo" /> 下载每人 Top 视频用于内嵌播放（额外 Apify 开销，每人约 1 个视频）</label>
         <details style="margin-top:10px">
           <summary>高级：覆盖 Apify Actor / 邮件工具地址</summary>
           <div style="margin-top:8px">
@@ -769,7 +775,6 @@
       waitSecs: parseInt($('waitSecs').value,10)||900,
       discoverLimit: parseInt($('discoverLimit').value,10)||30,
       discoverResultsPerPage: parseInt($('discoverResultsPerPage').value,10)||60,
-      downloadTopVideo: $('downloadTopVideo').checked,
       platform: currentPlatform
     };
     var act=$('actor').value.trim(); if(act) body.actor=act;
@@ -874,17 +879,21 @@
   }
   function commentsBlock(comments){
     if(!comments || !comments.length) return '';
-    var html = '<div class="creator-comments"><div class="ttl">💬 Top 评论</div>';
+    var html = '<div class="creator-comments"><div class="ttl">💬 近期热门视频的 Top 评论</div>';
     comments.slice(0,3).forEach(function(c){
       var av = c.user_avatar
         ? '<img class="cc-avatar" loading="lazy" referrerpolicy="no-referrer" src="' + escAttr(c.user_avatar) + '" onerror="this.outerHTML=\'<div class=\\\'cc-avatar cc-avatar-fallback\\\'>'+esc(initial(c.user_nick||c.user))+'</div>\'" alt="" />'
         : '<div class="cc-avatar cc-avatar-fallback">' + esc(initial(c.user_nick||c.user||'?')) + '</div>';
       var who = c.user_nick || c.user || '匿名';
+      var src = '';
+      if(c.from_video_url){
+        src = ' · <a href="' + escAttr(c.from_video_url) + '" target="_blank" rel="noopener" style="color:var(--muted);text-decoration:underline">来源视频(▶'+fmt(c.from_video_plays||0)+')</a>';
+      }
       html += '<div class="cc-item">' + av
         + '<div class="cc-body">'
         +   '<div class="cc-meta"><span class="nick">' + esc(who) + '</span>'
         +     (c.user ? '<span>@' + esc(c.user) + '</span>' : '')
-        +     '<span class="lk">♥ ' + fmt(c.likes) + '</span>'
+        +     '<span class="lk">♥ ' + fmt(c.likes) + '</span>' + src
         +   '</div>'
         +   '<div class="cc-text">' + esc(c.text) + '</div>'
         + '</div></div>';
@@ -1237,9 +1246,12 @@
     var html = '<div class="ai-report">';
     html +=   '<div class="ai-hd"><span class="ai-title">🤖 AI 触达报告</span>'
             + '<span class="ai-saved">' + (savedT ? ('保存于 ' + esc(savedT)) : '') + '</span></div>';
+    var score = a.match_score;
+    if(score == null || isNaN(Number(score))){ score = null; }
     html +=   '<div class="ai-verdict ' + vc + '">'
-            +   '<div class="vlabel">' + esc(v) + '</div>'
-            +   (vReason ? '<div class="vreason">' + esc(vReason) + '</div>' : '')
+            +   '<div class="vmain"><div class="vlabel">' + esc(v) + '</div>'
+            +   (vReason ? '<div class="vreason">' + esc(vReason) + '</div>' : '') + '</div>'
+            +   (score != null ? '<div class="ai-score"><div class="num">' + esc(Math.round(Number(score))) + '</div><div class="lab">匹配度</div></div>' : '')
             + '</div>';
     if(pPost!=null || pStory!=null || pVid!=null){
       html += '<div class="ai-section-ttl">报价建议</div><div class="ai-prices">';
@@ -1505,6 +1517,7 @@
             '加入收藏时间':       f.addedAt ? fmtDateTime(f.addedAt) : '',
             '上次联系时间':       f.lastContactedAt ? fmtDateTime(f.lastContactedAt) : '',
             'AI建议':            ai ? (ai.verdict || ai.recommend_outreach || '') : '',
+            'AI匹配度':           ai && ai.match_score != null ? ai.match_score : '',
             'AI核心理由':         ai ? (ai.verdict_reason || ai.recommend_reason || '') : '',
             'AI报价_单帖':        ai && ai.suggested_price_usd ? (ai.suggested_price_usd.single_post || ai.suggested_price_usd.post || '') : '',
             'AI报价_Story':      ai && ai.suggested_price_usd ? (ai.suggested_price_usd.story_or_pin || ai.suggested_price_usd.story || '') : '',

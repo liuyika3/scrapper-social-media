@@ -656,6 +656,7 @@ JSON schema：
 {
   "verdict": "建议触达" 或 "可考虑" 或 "不建议",
   "verdict_reason": "≤25字 一句话核心理由",
+  "match_score": <0-100 整数，与 Jovida 整体匹配度；80+ 强匹配 / 60-79 中等 / <60 弱>,
   "audience_insight": "≤45字 受众画像（年龄段/地区/兴趣偏好）",
   "content_insight": "≤45字 内容风格 + 发布节奏",
   "engagement_quality": "≤35字 互动真实度评估",
@@ -667,6 +668,7 @@ JSON schema：
 }
 
 约束：
+- match_score 必须给，依据：受众契合度 + 内容调性匹配 + 互动质量 + 账号活跃度，综合打分。verdict 与 match_score 应一致：建议触达≈80+，可考虑≈60-79，不建议<60
 - talking_points 控制在 2-3 条，每条具体可执行（引用某条视频/某个数据点），不要"内容好"这种泛话
 - warnings 只有真有问题才写（受众错配 / 互动作假 / 账号停更 / 私号率高），没问题就空数组
 - 报价：根据 followers 量级 + avg_play_in_window 与 followers 比值（互动率代理）+ 区域估算；followers<5K 给保守价，>500K 才上四位数
@@ -859,16 +861,19 @@ def screen_creators(
             row["actor"] = actor_id
             all_rows.append(row)
 
-    # Auto-fetch top comments per creator (top 3 across their top videos by likes).
-    # TikTok only — IG comments via different actor, skip for now.
+    # Auto-fetch top comments per creator. Only from each creator's top-by-plays
+    # videos within the analysis window (i.e. recent_videos_top, already sorted
+    # by playCount desc). TikTok only — IG comments via different actor, skip.
     if fetch_top_comments and all_rows and platform != "instagram":
         url_to_creator: dict = {}
+        url_to_play: dict = {}
         urls_to_fetch: list = []
         for row in all_rows:
             for v in (row.get("recent_videos_top") or [])[:3]:
                 u = v.get("url")
                 if u and u not in url_to_creator:
                     url_to_creator[u] = row.get("username") or ""
+                    url_to_play[u] = v.get("plays") or 0
                     urls_to_fetch.append(u)
         if urls_to_fetch:
             try:
@@ -882,10 +887,15 @@ def screen_creators(
             per_creator: dict = _dd(list)
             for u, lst in cmts.items():
                 cu = url_to_creator.get(u, "")
-                if cu:
-                    per_creator[cu].extend(lst)
+                if not cu:
+                    continue
+                for c in lst:
+                    c["from_video_url"] = u
+                    c["from_video_plays"] = url_to_play.get(u, 0)
+                per_creator[cu].extend(lst)
             for row in all_rows:
                 cs = per_creator.get(row.get("username") or "", [])
+                # Top comments by likes across this creator's top recent videos
                 cs.sort(key=lambda c: c.get("likes", 0), reverse=True)
                 row["top_comments"] = cs[:3]
 
