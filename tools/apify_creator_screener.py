@@ -517,8 +517,23 @@ def analyze_profile_ig(profile: dict, window_start: float, threshold_mode: str, 
             if cap:
                 texts_recent.append(cap)
             short = p.get("shortCode") or p.get("code") or ""
+            cover = (
+                p.get("displayUrl")
+                or p.get("thumbnailSrc")
+                or p.get("thumbnailUrl")
+                or p.get("imageUrl")
+                or ""
+            )
+            if not cover:
+                imgs = p.get("images") or p.get("childPosts") or []
+                if isinstance(imgs, list) and imgs:
+                    first = imgs[0]
+                    if isinstance(first, str):
+                        cover = first
+                    elif isinstance(first, dict):
+                        cover = first.get("displayUrl") or first.get("url") or ""
             in_window_videos.append({
-                "cover": p.get("displayUrl") or p.get("thumbnailUrl") or "",
+                "cover": cover,
                 "plays": metric,
                 "likes": likes,
                 "comments": comments,

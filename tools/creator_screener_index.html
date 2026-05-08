@@ -882,13 +882,24 @@
     return r;
   }
 
+  // IG / fbcdn URLs frequently 403 for cross-origin <img>. Route through local proxy
+  // (server fetches with proper Referer + UA). TT URLs work directly.
+  function imgSrc(url){
+    if(!url) return '';
+    var u = String(url);
+    if(/cdninstagram\.com|fbcdn\.net/i.test(u)){
+      return '/api/img-proxy?url=' + encodeURIComponent(u);
+    }
+    return u;
+  }
+
   function videoBlock(vids, mp4){
     if(!vids || !vids.length) return '';
     var html = '';
     var startIdx = 0;
     if(mp4 && vids[0]){
       var v = vids[0];
-      html += '<div class="top-video"><video controls preload="none" poster="' + escAttr(v.cover||'') + '" src="' + escAttr(mp4) + '"></video>'
+      html += '<div class="top-video"><video controls preload="none" poster="' + escAttr(imgSrc(v.cover||'')) + '" src="' + escAttr(mp4) + '"></video>'
         + '<div class="cap"><span>▶ ' + fmt(v.plays) + ' · ♥ ' + fmt(v.likes) + '</span>'
         + (v.url ? '<a href="' + escAttr(v.url) + '" target="_blank" rel="noopener">在 TikTok 看 →</a>' : '')
         + '</div></div>';
@@ -900,7 +911,7 @@
       var v = vids[startIdx + i];
       if(!v){ cells.push('<div class="vid"><div class="ph">—</div></div>'); continue; }
       var inner = v.cover
-        ? '<img loading="lazy" referrerpolicy="no-referrer" src="' + escAttr(v.cover) + '" onerror="this.style.display=\'none\';this.parentNode.querySelector(\'.ph\').style.display=\'flex\'" alt="" /><div class="ph" style="display:none">no img</div>'
+        ? '<img loading="lazy" referrerpolicy="no-referrer" src="' + escAttr(imgSrc(v.cover)) + '" onerror="this.style.display=\'none\';this.parentNode.querySelector(\'.ph\').style.display=\'flex\'" alt="" /><div class="ph" style="display:none">no img</div>'
         : '<div class="ph">no img</div>';
       var plays = '<span class="plays">▶ ' + fmt(v.plays) + '</span>';
       cells.push(v.url
@@ -924,7 +935,7 @@
     var html = '<div class="creator-comments"><div class="ttl">💬 近期热门视频的 Top 评论</div>';
     comments.slice(0,3).forEach(function(c){
       var av = c.user_avatar
-        ? '<img class="cc-avatar" loading="lazy" referrerpolicy="no-referrer" src="' + escAttr(c.user_avatar) + '" onerror="this.outerHTML=\'<div class=\\\'cc-avatar cc-avatar-fallback\\\'>'+esc(initial(c.user_nick||c.user))+'</div>\'" alt="" />'
+        ? '<img class="cc-avatar" loading="lazy" referrerpolicy="no-referrer" src="' + escAttr(imgSrc(c.user_avatar)) + '" onerror="this.outerHTML=\'<div class=\\\'cc-avatar cc-avatar-fallback\\\'>'+esc(initial(c.user_nick||c.user))+'</div>\'" alt="" />'
         : '<div class="cc-avatar cc-avatar-fallback">' + esc(initial(c.user_nick||c.user||'?')) + '</div>';
       var who = c.user_nick || c.user || '匿名';
       var src = '';
@@ -967,7 +978,7 @@
     var pass = !!r.pass_all;
     var passEl = '<span class="pass ' + (pass?'ok':'no') + '">' + (pass?'✓ 合格':'✗ 不合格') + '</span>';
     var av = r.avatar
-      ? '<img class="avatar' + (r.verified?' verified':'') + '" loading="lazy" referrerpolicy="no-referrer" src="' + escAttr(r.avatar) + '" onerror="this.outerHTML=\'<div class=\\\'avatar avatar-fallback\\\'>'+esc(initial(r.nickname||r.username))+'</div>\'" alt="" />'
+      ? '<img class="avatar' + (r.verified?' verified':'') + '" loading="lazy" referrerpolicy="no-referrer" src="' + escAttr(imgSrc(r.avatar)) + '" onerror="this.outerHTML=\'<div class=\\\'avatar avatar-fallback\\\'>'+esc(initial(r.nickname||r.username))+'</div>\'" alt="" />'
       : '<div class="avatar avatar-fallback">' + esc(initial(r.nickname||r.username)) + '</div>';
     var name = esc(r.nickname || r.username || '');
     var v = r.verified ? '<span class="vbadge" title="verified">✓</span>' : '';
@@ -1006,7 +1017,7 @@
   function favCardHtml(fav, idx){
     var r = fav.creator;
     var av = r.avatar
-      ? '<img class="avatar' + (r.verified?' verified':'') + '" loading="lazy" referrerpolicy="no-referrer" src="' + escAttr(r.avatar) + '" onerror="this.outerHTML=\'<div class=\\\'avatar avatar-fallback\\\'>'+esc(initial(r.nickname||r.username))+'</div>\'" alt="" />'
+      ? '<img class="avatar' + (r.verified?' verified':'') + '" loading="lazy" referrerpolicy="no-referrer" src="' + escAttr(imgSrc(r.avatar)) + '" onerror="this.outerHTML=\'<div class=\\\'avatar avatar-fallback\\\'>'+esc(initial(r.nickname||r.username))+'</div>\'" alt="" />'
       : '<div class="avatar avatar-fallback">' + esc(initial(r.nickname||r.username)) + '</div>';
     var name = esc(r.nickname || r.username || '');
     var v = r.verified ? '<span class="vbadge" title="verified">✓</span>' : '';
@@ -1447,7 +1458,7 @@
     $('mailPlain').checked = false;
     $('mailPersonalize').checked = true;
     var av = $('mailAvatar');
-    if(r.avatar){ av.src = r.avatar; av.style.display='block'; } else { av.removeAttribute('src'); av.style.display='none'; }
+    if(r.avatar){ av.src = imgSrc(r.avatar); av.style.display='block'; } else { av.removeAttribute('src'); av.style.display='none'; }
     $('mailModalTitle').textContent = '起草邮件给 ' + (r.nickname || r.username || '');
     $('mailRecipientHint').textContent = '@' + (r.username||'') + (r.followers ? ' · ' + fmt(r.followers) + ' 粉丝' : '');
     $('mailFromText').textContent = mailToolStatus.configured

@@ -240,6 +240,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._handle_seen_list()
         if path.startswith("/oauth/callback"):
             return self._handle_oauth_callback()
+        if path.startswith("/api/img-proxy"):
+            return self._handle_img_proxy()
         return self._send_json(404, {"ok": False, "error": "not found"})
 
     def do_POST(self):
@@ -599,6 +601,39 @@ class Handler(BaseHTTPRequestHandler):
                 data[key]["lastContactedAt"] = int(time.time() * 1000)
             _save_favorites(data)
         return self._send_json(200, {"ok": True, "favorite": data[key]})
+
+    def _handle_img_proxy(self):
+        """Proxy 3rd-party media (esp. Instagram CDN) which often 403s without
+        a same-site Referer. Whitelist hosts to avoid being an open proxy."""
+        qs = urllib.parse.urlparse(self.path).query
+        url = dict(urllib.parse.parse_qsl(qs)).get("url", "")
+        if not url or not url.startswith(("http://", "https://")):
+            return self._send_json(400, {"ok": False, "error": "url required"})
+        host = urllib.parse.urlparse(url).netloc.lower()
+        allowed = ("cdninstagram.com", "fbcdn.net", "tiktokcdn", "byteoversea", "tiktok.com")
+        if not any(d in host for d in allowed):
+            return self._send_json(403, {"ok": False, "error": "host not allowed: " + host})
+        # Pick referer based on host
+        referer = "https://www.instagram.com/" if ("instagram" in host or "fbcdn" in host) else "https://www.tiktok.com/"
+        try:
+            req = urllib.request.Request(url, headers={
+                "Referer": referer,
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+                "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+            })
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                ctype = resp.headers.get("Content-Type", "image/jpeg")
+                data = resp.read()
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "public, max-age=3600")
+            self.end_headers()
+            self.wfile.write(data)
+        except urllib.error.HTTPError as e:
+            return self._send_json(e.code, {"ok": False, "error": "upstream %s" % e.code})
+        except Exception as e:
+            return self._send_json(502, {"ok": False, "error": str(e)})
 
     def _handle_seen_list(self):
         with _state_lock:
