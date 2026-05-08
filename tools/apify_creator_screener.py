@@ -421,22 +421,45 @@ def discover_handles_ig(
     results_limit: int = 60,
     wait_secs: int = 600,
 ) -> list:
-    """Discover IG handles via apify/instagram-scraper hashtag search."""
+    """Discover IG handles via apify/instagram-scraper.
+
+    Apify's actor accepts either `directUrls` (most reliable) or `searchTerm` + `searchType`.
+    We feed both for max compatibility across actor versions.
+    """
     actor_id = search_actor or os.environ.get("APIFY_ACTOR_IG_SEARCH") or DEFAULT_IG_SEARCH_ACTOR
     queries = [k.strip().lstrip("#") for k in keywords if k.strip()]
     if not queries:
         return []
+    rl = max(10, min(int(results_limit), 200))
+    direct_urls = [
+        "https://www.instagram.com/explore/tags/" + urllib.parse.quote(q) + "/"
+        for q in queries[:3]
+    ]
     inp = {
-        "search": queries[0],
-        "searchType": "hashtag",
+        "directUrls": direct_urls,
         "resultsType": "posts",
-        "resultsLimit": max(10, min(int(results_limit), 200)),
+        "resultsLimit": rl,
+        "addParentData": False,
+        # Older / alternate field names — actor ignores unknown keys, so include all
+        "searchType": "hashtag",
+        "searchTerm": queries[0],
+        "search": queries[0],
+        "searchLimit": rl,
+        "hashtags": queries,
     }
     items = apify_run_actor(token, actor_id, inp, wait_secs=wait_secs)
     handles: list = []
     seen: set = set()
     for it in items:
-        u = it.get("ownerUsername") or it.get("username")
+        if not isinstance(it, dict):
+            continue
+        u = (
+            it.get("ownerUsername")
+            or it.get("username")
+            or (it.get("owner") or {}).get("username")
+            or (it.get("user") or {}).get("username")
+            or it.get("uniqueId")
+        )
         if isinstance(u, str):
             k = u.strip().lstrip("@").lower()
             if k and k not in seen:
