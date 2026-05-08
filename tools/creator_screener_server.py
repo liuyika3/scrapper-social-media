@@ -30,6 +30,7 @@ MAX_HANDLES = 60
 DATA_DIR = ROOT.parent
 GOOGLE_ACCOUNTS_PATH = DATA_DIR / ".google-accounts.json"
 FAVORITES_PATH = DATA_DIR / ".favorites.json"
+SEEN_PATH = DATA_DIR / ".seen-creators.json"
 _state_lock = threading.Lock()
 
 
@@ -63,6 +64,14 @@ def _load_favorites() -> dict:
 
 def _save_favorites(data: dict) -> None:
     _save_json(FAVORITES_PATH, data)
+
+
+def _load_seen() -> dict:
+    return _load_json(SEEN_PATH, {})
+
+
+def _save_seen(data: dict) -> None:
+    _save_json(SEEN_PATH, data)
 
 
 # ---------- Gmail OAuth ----------
@@ -227,6 +236,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._handle_auth_status()
         if path.startswith("/api/favorites"):
             return self._handle_favorites_list()
+        if path.startswith("/api/seen"):
+            return self._handle_seen_list()
         if path.startswith("/oauth/callback"):
             return self._handle_oauth_callback()
         return self._send_json(404, {"ok": False, "error": "not found"})
@@ -250,6 +261,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._handle_fav_status()
         if self.path.startswith("/api/favorites/save-ai"):
             return self._handle_fav_save_ai()
+        if self.path.startswith("/api/seen/clear"):
+            return self._handle_seen_clear()
+        if self.path.startswith("/api/seen/forget"):
+            return self._handle_seen_forget()
         if not self.path.startswith("/api/screen"):
             return self._send_json(404, {"ok": False, "error": "not found"})
         try:
@@ -307,6 +322,8 @@ class Handler(BaseHTTPRequestHandler):
                 platform=(payload.get("platform") or "tiktok").strip(),
                 fetch_top_comments=payload.get("fetchTopComments", True),
                 comments_per_post=int(payload.get("commentsPerPost") or 20),
+                dedupe=bool(payload.get("dedupe", True)),
+                seen_handles=set(_load_seen().keys()) if payload.get("dedupe", True) else None,
             )
         except ValueError as e:
             return self._send_json(400, {"ok": False, "error": str(e)})
@@ -319,6 +336,18 @@ class Handler(BaseHTTPRequestHandler):
             )
 
         rows = result.get("rows") or []
+        # Persist newly-seen creators so future searches with dedupe=True skip them
+        newly_seen = result.get("newly_seen") or []
+        if newly_seen:
+            with _state_lock:
+                seen = _load_seen()
+                now = int(time.time() * 1000)
+                plat = (payload.get("platform") or "tiktok").strip()
+                for u in newly_seen:
+                    u = (u or "").lower()
+                    if u and u not in seen:
+                        seen[u] = {"firstSeen": now, "platform": plat}
+                _save_seen(seen)
         return self._send_json(
             200,
             {
@@ -326,6 +355,7 @@ class Handler(BaseHTTPRequestHandler):
                 "rows": rows,
                 "count": len(rows),
                 "discovery": result.get("discovery"),
+                "seenCount": len(_load_seen()),
             },
         )
 
@@ -569,6 +599,43 @@ class Handler(BaseHTTPRequestHandler):
                 data[key]["lastContactedAt"] = int(time.time() * 1000)
             _save_favorites(data)
         return self._send_json(200, {"ok": True, "favorite": data[key]})
+
+    def _handle_seen_list(self):
+        with _state_lock:
+            seen = _load_seen()
+        return self._send_json(200, {"ok": True, "count": len(seen), "seen": seen})
+
+    def _handle_seen_clear(self):
+        try:
+            n = int(self.headers.get("Content-Length", "0"))
+            payload = json.loads(self.rfile.read(n).decode("utf-8")) if n > 0 else {}
+        except Exception:
+            payload = {}
+        plat_filter = (payload.get("platform") or "").strip()
+        with _state_lock:
+            if plat_filter:
+                seen = _load_seen()
+                seen = {k: v for k, v in seen.items() if v.get("platform") != plat_filter}
+                _save_seen(seen)
+                return self._send_json(200, {"ok": True, "count": len(seen)})
+            else:
+                _save_seen({})
+                return self._send_json(200, {"ok": True, "count": 0})
+
+    def _handle_seen_forget(self):
+        try:
+            n = int(self.headers.get("Content-Length", "0"))
+            payload = json.loads(self.rfile.read(n).decode("utf-8")) if n > 0 else {}
+        except Exception as e:
+            return self._send_json(400, {"ok": False, "error": "invalid json: %s" % e})
+        username = (payload.get("username") or "").strip().lower()
+        if not username:
+            return self._send_json(400, {"ok": False, "error": "username required"})
+        with _state_lock:
+            seen = _load_seen()
+            seen.pop(username, None)
+            _save_seen(seen)
+        return self._send_json(200, {"ok": True})
 
     def _handle_fav_save_ai(self):
         try:

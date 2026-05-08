@@ -25,3 +25,4 @@ mp4_cache/
 .google-accounts.json
 .favorites.json
 *.tmp
+.seen-creators.json

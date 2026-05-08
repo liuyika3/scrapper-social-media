@@ -343,6 +343,11 @@
           </div>
         </div>
 
+        <label class="check" style="margin-top:8px; padding:8px 10px; background:rgba(124,92,255,0.08); border:1px solid rgba(124,92,255,0.25); border-radius:8px; color:#cdbfff;">
+          <input type="checkbox" id="dedupe" checked /> 去重 · 跳过已查过的博主
+          <span id="seenCountLabel" style="margin-left:6px; font-size:0.72rem; color:var(--muted);"></span>
+          <button type="button" id="seenClearBtn" class="ghost" style="margin-left:auto; margin-top:0; width:auto; padding:3px 10px; font-size:0.72rem; min-height:24px;">清除已查记录</button>
+        </label>
         <details style="margin-top:10px">
           <summary>高级：覆盖 Apify Actor / 邮件工具地址</summary>
           <div style="margin-top:8px">
@@ -802,7 +807,8 @@
       waitSecs: parseInt($('waitSecs').value,10)||900,
       discoverLimit: parseInt($('discoverLimit').value,10)||30,
       discoverResultsPerPage: parseInt($('discoverResultsPerPage').value,10)||60,
-      platform: currentPlatform
+      platform: currentPlatform,
+      dedupe: $('dedupe').checked
     };
     var act=$('actor').value.trim(); if(act) body.actor=act;
     var sact=$('searchActor').value.trim(); if(sact) body.searchActor=sact;
@@ -815,6 +821,7 @@
         lastRows = x.j.rows || []; lastDiscovery = x.j.discovery || null;
         $('csv').disabled = !lastRows.length;
         render();
+        refreshSeenCount();
       })
       .catch(function(e){ $('run').disabled = false; $('run').innerHTML='开始'; setErr(String(e)); lastRows=[]; render(); });
   }
@@ -832,9 +839,17 @@
 
   function discoveryBanner(){
     var d = lastDiscovery; if(!d) return '';
+    var dedupePart = (d.skipped_seen != null && d.skipped_seen > 0)
+      ? ' · 去重跳过 <strong style="color:#cdbfff">' + d.skipped_seen + '</strong> 个已查过的'
+      : (d.dedupe === false ? ' · <span style="color:var(--muted)">未启用去重</span>' : '');
     return '<div class="discovery-banner">通过关键词 <strong>' + esc((d.keywords||[]).join(', ')) +
       '</strong> 由 <code>' + esc(d.search_actor||'') + '</code> 发现 <strong>' + (d.raw_count||0) +
-      '</strong> 名候选博主，已截取前 <strong>' + (d.kept||0) + '</strong> 名进行画像分析。</div>';
+      '</strong> 名候选' + dedupePart + '，已截取前 <strong>' + (d.kept||0) + '</strong> 名进行画像分析。</div>';
+  }
+  function refreshSeenCount(){
+    fetch('/api/seen').then(function(r){return r.json();}).then(function(j){
+      if(j && j.ok){ var el = $('seenCountLabel'); if(el) el.textContent = j.count > 0 ? ('（已记录 ' + j.count + ' 人）') : ''; }
+    }).catch(function(){});
   }
 
   function counts(rows){
@@ -1572,6 +1587,12 @@
 
   $('empty').style.display='block';
   refreshMailStatus();
+  refreshSeenCount();
+  $('seenClearBtn').onclick = function(e){
+    e.preventDefault(); e.stopPropagation();
+    if(!confirm('清除全部已查记录？下次搜索会重新从 Apify 排序的最前面开始。')) return;
+    fetch('/api/seen/clear', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}).then(function(){ refreshSeenCount(); });
+  };
   // Server-loaded favorites: if user already has favs, jump straight into the 收藏 view
   loadFavsFromServer().then(function(){
     if(Object.keys(favs).length > 0){ setView('favs'); }

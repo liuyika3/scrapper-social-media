@@ -583,21 +583,34 @@ def _screen_ig(
     search_actor: Optional[str],
     discover_limit: int,
     discover_results_per_page: int,
+    dedupe: bool = True,
+    seen_lower: Optional[set] = None,
 ) -> dict:
     actor_id = profile_actor or os.environ.get("APIFY_ACTOR_IG_PROFILE") or DEFAULT_IG_PROFILE_ACTOR
+    seen_lower = seen_lower or set()
     discovery_info: Optional[dict] = None
     if not handles:
         if not kws_for_match:
             raise ValueError("must supply handles, or keywords for discovery")
-        discovered = discover_handles_ig(token, kws_for_match, search_actor=search_actor, results_limit=discover_results_per_page, wait_secs=wait_secs)
+        wanted = max(1, int(discover_results_per_page))
+        per_page = max(wanted * 2, wanted + 30) if dedupe else wanted
+        per_page = min(per_page, 200)
+        discovered = discover_handles_ig(token, kws_for_match, search_actor=search_actor, results_limit=per_page, wait_secs=wait_secs)
+        before_dedupe = len(discovered)
+        skipped_seen = 0
+        if dedupe and seen_lower:
+            filtered = [h for h in discovered if (h or "").lower() not in seen_lower]
+            skipped_seen = before_dedupe - len(filtered)
+            discovered = filtered
         kept = discovered[: max(1, int(discover_limit))]
         discovery_info = {
-            "keywords": kws_for_match, "raw_count": len(discovered), "kept": len(kept),
+            "keywords": kws_for_match, "raw_count": before_dedupe, "kept": len(kept),
+            "skipped_seen": skipped_seen, "dedupe": bool(dedupe),
             "search_actor": search_actor or os.environ.get("APIFY_ACTOR_IG_SEARCH") or DEFAULT_IG_SEARCH_ACTOR,
         }
         handles = kept
         if not handles:
-            return {"rows": [], "discovery": discovery_info}
+            return {"rows": [], "discovery": discovery_info, "newly_seen": []}
 
     window_start = (datetime.now(timezone.utc) - timedelta(days=days)).timestamp()
     inp = {"usernames": list(handles)}
@@ -619,7 +632,8 @@ def _screen_ig(
         row["apify_chunk_sec"] = round(elapsed, 2)
         row["actor"] = actor_id
         all_rows.append(row)
-    return {"rows": all_rows, "discovery": discovery_info}
+    newly_seen = [(r.get("username") or "").lower() for r in all_rows if r.get("username")]
+    return {"rows": all_rows, "discovery": discovery_info, "newly_seen": newly_seen}
 
 
 def call_gemini(api_key: str, prompt: str, *, model: Optional[str] = None, timeout: int = 60) -> str:
@@ -776,10 +790,13 @@ def screen_creators(
     fetch_top_comments: bool = True,
     comments_actor: Optional[str] = None,
     comments_per_post: int = 20,
+    dedupe: bool = True,
+    seen_handles: Optional[set] = None,
 ) -> dict:
     if not token or not str(token).strip():
         raise ValueError("missing Apify token")
     kws_for_match = [x for x in (keywords or "").split(",") if x.strip()]
+    seen_lower = set((s or "").lower() for s in (seen_handles or set()))
     if platform == "instagram":
         return _screen_ig(
             token, list(handles or []),
@@ -787,6 +804,7 @@ def screen_creators(
             threshold=threshold, wait_secs=wait_secs,
             profile_actor=actor, search_actor=search_actor,
             discover_limit=discover_limit, discover_results_per_page=discover_results_per_page,
+            dedupe=dedupe, seen_lower=seen_lower,
         )
     actor_id = actor or os.environ.get("APIFY_ACTOR_TIKTOK") or DEFAULT_PROFILE_ACTOR
 
@@ -794,18 +812,30 @@ def screen_creators(
     if not handles:
         if not kws_for_match:
             raise ValueError("must supply handles, or keywords for discovery")
+        # Oversample when dedupe is on so we can refill after filtering out seen handles
+        wanted = max(1, int(discover_results_per_page))
+        per_page_for_apify = max(wanted * 2, wanted + 30) if dedupe else wanted
+        per_page_for_apify = min(per_page_for_apify, 200)
         discovered = discover_handles(
             token,
             kws_for_match,
             search_actor=search_actor,
-            results_per_page=discover_results_per_page,
+            results_per_page=per_page_for_apify,
             wait_secs=wait_secs,
         )
+        before_dedupe = len(discovered)
+        skipped_seen = 0
+        if dedupe and seen_lower:
+            filtered = [h for h in discovered if (h or "").lower() not in seen_lower]
+            skipped_seen = before_dedupe - len(filtered)
+            discovered = filtered
         kept = discovered[: max(1, int(discover_limit))]
         discovery_info = {
             "keywords": kws_for_match,
-            "raw_count": len(discovered),
+            "raw_count": before_dedupe,
             "kept": len(kept),
+            "skipped_seen": skipped_seen,
+            "dedupe": bool(dedupe),
             "search_actor": (
                 search_actor
                 or os.environ.get("APIFY_ACTOR_TIKTOK_SEARCH")
@@ -814,7 +844,7 @@ def screen_creators(
         }
         handles = kept
         if not handles:
-            return {"rows": [], "discovery": discovery_info}
+            return {"rows": [], "discovery": discovery_info, "newly_seen": []}
 
     window_start = (datetime.now(timezone.utc) - timedelta(days=days)).timestamp()
     actor_input_base = {
@@ -919,7 +949,8 @@ def screen_creators(
                     if mp4:
                         row["top_video_mp4"] = mp4
 
-    return {"rows": all_rows, "discovery": discovery_info}
+    newly_seen = [(r.get("username") or "").lower() for r in all_rows if r.get("username")]
+    return {"rows": all_rows, "discovery": discovery_info, "newly_seen": newly_seen}
 
 
 _CSV_FIELDS = (
