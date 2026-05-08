@@ -442,9 +442,12 @@ class Handler(BaseHTTPRequestHandler):
         params = urllib.parse.urlencode({
             "client_id": client_id, "redirect_uri": redirect_uri,
             "response_type": "code", "access_type": "offline",
-            "prompt": "consent",
+            # Force the account chooser AND consent screen, even if signed in elsewhere
+            "prompt": "select_account consent",
             "scope": "https://www.googleapis.com/auth/gmail.send",
             "state": email,
+            # Pre-suggest the target account so Google highlights/filters to it
+            "login_hint": email,
         })
         auth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + params
         return self._send_json(200, {"ok": True, "authUrl": auth_url, "redirectUri": redirect_uri})

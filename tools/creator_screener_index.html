@@ -670,7 +670,27 @@
     setTimeout(function(){ $('authEmail').focus(); }, 50);
   }
   function closeAuthModal(){ $('authModal').classList.remove('open'); }
-  function setAuthStatus(text, kind){ var el=$('authStatus'); if(!text){ el.classList.remove('show','info','ok','err'); el.innerHTML=''; return; } el.className='modal-status show '+(kind||'info'); el.innerHTML=text; }
+  function setAuthStatus(text, kind){ var el=$('authStatus'); if(!text){ el.classList.remove('show','info','ok','err'); el.innerHTML=''; return; } el.className='modal-status show '+(kind||'info'); el.textContent=text; }
+  function setAuthStatusHtml(html, kind){ var el=$('authStatus'); el.className='modal-status show '+(kind||'info'); el.innerHTML=html; }
+  var _authPollId = null;
+  function stopAuthPolling(){ if(_authPollId){ clearInterval(_authPollId); _authPollId=null; } }
+  function startAuthPolling(tab){
+    stopAuthPolling();
+    var t0 = Date.now();
+    _authPollId = setInterval(function(){
+      fetch('/api/auth/status').then(function(r){return r.json();}).then(function(j){
+        if(j.authenticated){
+          stopAuthPolling();
+          try { if(tab && !tab.closed) tab.close(); } catch(e){}
+          setAuthStatus('✓ 授权成功，发件人：' + j.activeAccount, 'ok');
+          refreshMailStatus();
+          $('authStart').disabled = false;
+          setTimeout(closeAuthModal, 1200);
+        }
+      }).catch(function(){});
+      if(Date.now() - t0 > 300000){ stopAuthPolling(); setAuthStatus('登录超时（5分钟），请重试', 'err'); $('authStart').disabled = false; }
+    }, 1500);
+  }
 
   $('loginBtn').onclick = openAuthModal;
   $('authClose').onclick = closeAuthModal;
@@ -688,22 +708,25 @@
       .then(function(x){
         $('authStart').disabled = false;
         if(x.code !== 200 || !x.j.ok){ setAuthStatus('失败：' + (x.j && x.j.error || x.code), 'err'); return; }
-        var popup = window.open(x.j.authUrl, 'gauth', 'width=520,height=720,left=200,top=120');
-        if(!popup){ setAuthStatus('浏览器拦了 popup。<br/>直接打开：<a href="' + escAttr(x.j.authUrl) + '" target="_blank" style="color:#fff;text-decoration:underline">这里</a>', 'err'); return; }
-        setAuthStatus('在弹出窗口里完成 Google 授权…（成功后窗口自动关闭）', 'info');
-        var t0 = Date.now();
-        var pid = setInterval(function(){
-          fetch('/api/auth/status').then(function(r){return r.json();}).then(function(j){
-            if(j.authenticated){
-              clearInterval(pid);
-              try { if(popup && !popup.closed) popup.close(); } catch(e){}
-              setAuthStatus('✓ 授权成功，发件人：' + j.activeAccount, 'ok');
-              refreshMailStatus();
-              setTimeout(closeAuthModal, 1200);
-            }
-          }).catch(function(){});
-          if(Date.now() - t0 > 180000){ clearInterval(pid); setAuthStatus('登录超时（3分钟），请重试', 'err'); }
-        }, 1500);
+        // Open as a regular new tab (no popup styling) — bypasses popup blockers
+        // and shows Google's full account chooser cleanly.
+        var tab = window.open(x.j.authUrl, '_blank');
+        if(!tab){
+          setAuthStatusHtml(
+            '浏览器拦了新标签页。<a href="' + escAttr(x.j.authUrl) + '" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline">点这里手动打开授权页 →</a>'
+            + '<br/><span style="opacity:0.75">完成后回到本页，状态会自动刷新。</span>',
+            'err'
+          );
+          startAuthPolling();
+          return;
+        }
+        setAuthStatusHtml(
+          '已新开标签页让你授权 Google。<br/>'
+          + '<strong>记得在 Google 账号选择页里点 ' + esc($('authEmail').value.trim()) + '</strong>（不是其他 Gmail）。<br/>'
+          + '<a href="' + escAttr(x.j.authUrl) + '" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline">没弹出来？点这里手动打开</a>',
+          'info'
+        );
+        startAuthPolling(tab);
       })
       .catch(function(e){ $('authStart').disabled = false; setAuthStatus('网络错误：' + e, 'err'); });
   };
