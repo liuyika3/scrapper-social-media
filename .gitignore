@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Local server runtime
+serv.out.log
+serv.err.log
+serv.pid
+*.log
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local secrets — never commit
+.env
+*.local
+
+# Downloaded videos / temp media
+videos/
+mp4_cache/

@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
+  <title>TikTok 博主发现 · Apify</title>
+  <style>
+    :root {
+      --bg:#0a0e16; --bg2:#0d1320;
+      --panel:#141d2c; --panel2:#1a2436; --panel3:#202c42;
+      --border:#26344d; --border2:#324466;
+      --text:#eef2f8; --text2:#c4d0e2; --muted:#8b9cb3; --muted2:#5e6e87;
+      --accent:#3d8bfd; --accent2:#7c5cff; --accent-grad:linear-gradient(135deg,#3d8bfd 0%,#7c5cff 100%);
+      --good:#34c759; --good-bg:rgba(52,199,89,0.14); --good-bd:rgba(52,199,89,0.4);
+      --bad:#ff453a; --bad-bg:rgba(255,69,58,0.12); --bad-bd:rgba(255,69,58,0.38);
+      --warn:#ffb547;
+      --shadow-1:0 1px 2px rgba(0,0,0,0.3);
+      --shadow-2:0 8px 24px rgba(0,0,0,0.35);
+      --shadow-3:0 24px 56px -12px rgba(0,0,0,0.55);
+      --r-sm:6px; --r-md:10px; --r-lg:14px; --r-xl:18px;
+      --t-fast:120ms; --t-mid:200ms; --t-slow:280ms;
+    }
+    @media (prefers-reduced-motion: reduce) { * { animation-duration:0ms !important; transition-duration:0ms !important; } }
+    * { box-sizing:border-box; }
+    html, body { margin:0; padding:0; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background:radial-gradient(ellipse 100% 60% at 50% -10%, #1c2746 0%, var(--bg) 50%, var(--bg2) 100%) fixed; color:var(--text); line-height:1.5; min-height:100vh; -webkit-font-smoothing:antialiased; }
+    a { color:var(--accent); text-decoration:none; transition:color var(--t-fast); }
+    a:hover { color:#6ba8ff; text-decoration:underline; }
+    a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:6px; }
+    code { background:rgba(255,255,255,0.06); padding:1px 6px; border-radius:4px; font-size:0.85em; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+    .num { font-variant-numeric:tabular-nums; }
+    .wrap { max-width:1320px; margin:0 auto; padding:18px 22px 80px; }
+    .topbar { display:flex; align-items:center; gap:14px; margin-bottom:18px; flex-wrap:wrap; }
+    .topbar h1 { flex:1; font-size:1.55rem; font-weight:700; margin:0; letter-spacing:-0.01em; background:linear-gradient(90deg,#fff 0%,#a3b9ff 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .topbar .sub { color:var(--muted); font-size:0.86rem; margin-top:2px; }
+    .acct-chip { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; background:var(--panel); border:1px solid var(--border); border-radius:999px; font-size:0.82rem; color:var(--text2); white-space:nowrap; cursor:pointer; transition:border-color var(--t-fast), background var(--t-fast); }
+    .acct-chip .dot { width:8px; height:8px; border-radius:50%; background:var(--muted2); flex-shrink:0; }
+    .acct-chip.ok { border-color:var(--good-bd); background:linear-gradient(180deg,var(--good-bg) 0%,var(--panel) 100%); }
+    .acct-chip.ok .dot { background:var(--good); box-shadow:0 0 0 4px rgba(52,199,89,0.18); }
+    .acct-chip.warn { border-color:rgba(255,181,71,0.4); }
+    .acct-chip.warn .dot { background:var(--warn); }
+    .acct-chip.err { border-color:var(--bad-bd); }
+    .acct-chip.err .dot { background:var(--bad); }
+
+    label { display:block; font-size:0.78rem; color:var(--muted); margin-bottom:6px; letter-spacing:0.02em; font-weight:500; }
+    input, textarea, select, button { width:100%; border:1px solid var(--border); border-radius:var(--r-md); background:var(--panel); color:var(--text); padding:10px 12px; font-size:0.94rem; font-family:inherit; transition:border-color var(--t-fast), background var(--t-fast); }
+    input:hover:not(:focus), textarea:hover:not(:focus), select:hover:not(:focus) { border-color:var(--border2); }
+    textarea { min-height:96px; resize:vertical; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; line-height:1.55; }
+    button { cursor:pointer; background:var(--accent-grad); border:none; font-weight:600; margin-top:8px; min-height:42px; transition:transform var(--t-fast), box-shadow var(--t-fast), opacity var(--t-fast); box-shadow:var(--shadow-1); }
+    button:hover:not(:disabled) { box-shadow:var(--shadow-2); }
+    button:active:not(:disabled) { transform:translateY(1px); box-shadow:var(--shadow-1); }
+    button:disabled { opacity:0.4; cursor:not-allowed; }
+    button.secondary { background:var(--panel2); border:1px solid var(--border); color:var(--text); font-weight:500; }
+    button.secondary:hover:not(:disabled) { background:var(--panel3); border-color:var(--border2); }
+    button.ghost { background:transparent; border:1px solid var(--border); color:var(--text2); font-weight:500; }
+    .card { background:linear-gradient(180deg,var(--panel) 0%,#101824 100%); border:1px solid var(--border); border-radius:var(--r-xl); padding:18px 20px; box-shadow:var(--shadow-1); }
+    .grid-form { display:grid; gap:14px; grid-template-columns:1.15fr 1fr; }
+    @media (max-width:880px) { .grid-form { grid-template-columns:1fr; } }
+    .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+    @media (max-width:520px) { .row3 { grid-template-columns:1fr 1fr; } }
+    details > summary { cursor:pointer; color:var(--muted); font-size:0.85rem; padding:8px 0; user-select:none; }
+    details[open] > summary { color:var(--text2); }
+    .err { background:var(--bad-bg); border:1px solid var(--bad-bd); color:#ffb4ab; padding:11px 14px; border-radius:var(--r-md); margin-top:12px; white-space:pre-wrap; font-size:0.88rem; }
+    .hint { font-size:0.78rem; color:var(--muted); margin-top:6px; line-height:1.5; }
+
+    .toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:24px 0 14px; }
+    .badges { display:flex; flex-wrap:wrap; gap:8px; }
+    .badge { padding:5px 11px; border-radius:999px; background:var(--panel2); border:1px solid var(--border); font-size:0.78rem; color:var(--muted); display:inline-flex; align-items:center; gap:6px; }
+    .badge strong { color:var(--text); }
+    .badge.good { color:var(--good); border-color:var(--good-bd); background:var(--good-bg); }
+    .badge.bad { color:var(--bad); border-color:var(--bad-bd); background:var(--bad-bg); }
+    .toolbar-spacer { flex:1; }
+    .seg { display:inline-flex; border:1px solid var(--border); border-radius:999px; overflow:hidden; padding:3px; background:var(--panel); }
+    .seg button { width:auto; margin:0; padding:6px 14px; border-radius:999px; background:transparent; color:var(--muted); border:none; font-weight:500; min-height:32px; box-shadow:none; }
+    .seg button:hover:not(.active) { color:var(--text2); }
+    .seg button.active { background:var(--accent-grad); color:#fff; box-shadow:0 2px 8px rgba(61,139,253,0.4); }
+    .check { display:inline-flex; align-items:center; gap:7px; color:var(--muted); font-size:0.85rem; cursor:pointer; user-select:none; padding:6px 10px; border-radius:8px; transition:background var(--t-fast); }
+    .check:hover { background:var(--panel2); }
+    .check input { width:16px; height:16px; margin:0; accent-color:var(--accent); cursor:pointer; }
+    .toolbar select { width:auto; padding:7px 11px; min-height:36px; font-size:0.85rem; }
+
+    .cards { display:grid; gap:18px; grid-template-columns:repeat(3, minmax(0,1fr)); }
+    @media (max-width:1100px) { .cards { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+    @media (max-width:680px) { .cards { grid-template-columns:1fr; } }
+    .creator { background:linear-gradient(180deg, var(--panel) 0%, #101824 100%); border:1px solid var(--border); border-radius:var(--r-xl); overflow:hidden; display:flex; flex-direction:column; transition:transform var(--t-mid) cubic-bezier(0.2,0.8,0.2,1), border-color var(--t-mid), box-shadow var(--t-mid); position:relative; }
+    .creator:hover { border-color:var(--border2); transform:translateY(-2px); box-shadow:var(--shadow-2); }
+    .creator.fail { opacity:0.78; }
+    .creator.fail:hover { opacity:1; }
+    .head { padding:16px 18px 10px; display:flex; gap:12px; align-items:flex-start; position:relative; z-index:1; }
+    .avatar { width:56px; height:56px; border-radius:50%; background:var(--accent-grad); flex-shrink:0; object-fit:cover; border:2px solid rgba(255,255,255,0.06); box-shadow:0 4px 12px rgba(0,0,0,0.3); }
+    .avatar.verified { box-shadow:0 0 0 2px rgba(61,139,253,0.5), 0 4px 12px rgba(0,0,0,0.3); }
+    .avatar-fallback { display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:1.3rem; }
+    .who { flex:1; min-width:0; }
+    .name-line { display:flex; align-items:center; gap:6px; }
+    .name { font-weight:600; font-size:1rem; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:170px; }
+    .vbadge { color:#3d8bfd; font-size:0.8rem; flex-shrink:0; }
+    .handle { color:var(--muted); font-size:0.85rem; display:inline-block; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .handle:hover { color:var(--accent); }
+    .pills { display:flex; gap:4px; flex-wrap:wrap; margin-top:5px; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:0.7rem; background:var(--panel3); color:var(--muted); }
+    .pill.region { background:rgba(124,92,255,0.2); color:#cdbfff; }
+    .pill.kw { background:rgba(255,181,71,0.2); color:#ffd28a; }
+    .pass { padding:5px 11px; border-radius:999px; font-size:0.72rem; font-weight:600; white-space:nowrap; display:inline-flex; align-items:center; gap:4px; flex-shrink:0; }
+    .pass.ok { background:var(--good-bg); color:var(--good); border:1px solid var(--good-bd); }
+    .pass.no { background:var(--bad-bg); color:var(--bad); border:1px solid var(--bad-bd); }
+    .stats { display:grid; grid-template-columns:repeat(4,1fr); padding:8px 16px; gap:6px; }
+    .stat { background:var(--panel2); border:1px solid rgba(255,255,255,0.03); border-radius:var(--r-sm); padding:8px 6px; text-align:center; }
+    .stat .n { font-weight:700; font-size:0.96rem; color:var(--text); font-variant-numeric:tabular-nums; line-height:1.2; }
+    .stat .l { font-size:0.68rem; color:var(--muted); margin-top:3px; letter-spacing:0.02em; }
+    .stat.hl { background:linear-gradient(180deg,rgba(255,181,71,0.12),var(--panel2)); }
+    .stat.hl .n { color:#ffd28a; }
+    .bio { padding:0 18px 8px; font-size:0.85rem; color:var(--text2); display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; line-height:1.55; }
+    .top-video { padding:8px 14px 4px; }
+    .top-video video { width:100%; max-height:380px; aspect-ratio:9/16; background:#000; border-radius:var(--r-sm); border:1px solid var(--border); object-fit:cover; display:block; }
+    .top-video .cap { font-size:0.7rem; color:var(--muted); margin-top:4px; display:flex; justify-content:space-between; gap:8px; }
+    .top-video .cap a { color:var(--muted); }
+    .videos { padding:6px 14px 8px; display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+    .videos.three { grid-template-columns:repeat(3,1fr); }
+    .videos .vid { position:relative; aspect-ratio:9/16; background:#0a121f; border-radius:var(--r-sm); overflow:hidden; display:block; border:1px solid var(--border); transition:transform var(--t-fast); }
+    .videos .vid:hover { transform:scale(1.04); border-color:var(--accent); }
+    .videos .vid img { width:100%; height:100%; object-fit:cover; display:block; }
+    .videos .vid .plays { position:absolute; left:4px; bottom:4px; font-size:0.66rem; color:#fff; background:rgba(0,0,0,0.65); padding:1px 6px; border-radius:4px; font-variant-numeric:tabular-nums; backdrop-filter:blur(4px); }
+    .videos .vid .ph { width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:#3d4a66; font-size:0.7rem; }
+    .contacts { padding:4px 16px 8px; font-size:0.78rem; color:var(--muted); display:flex; flex-wrap:wrap; gap:6px; }
+    .contacts .c { background:var(--panel2); padding:3px 9px; border-radius:6px; border:1px solid rgba(255,255,255,0.04); }
+    .actions { padding:4px 16px 12px; display:flex; gap:8px; }
+    .actions button { margin-top:0; padding:8px 12px; font-size:0.8rem; min-height:36px; }
+    .actions .mail-btn { background:linear-gradient(135deg,#ff7a59,#d2386b); flex:1; }
+    .actions .mail-btn:disabled { background:var(--panel2); color:var(--muted2); border:1px solid var(--border); box-shadow:none; }
+    .actions .fav-btn { background:var(--panel2); border:1px solid var(--border); color:var(--text2); width:42px; padding:0; flex:0 0 42px; font-size:1.05rem; box-shadow:none; }
+    .actions .fav-btn:hover:not(:disabled) { border-color:var(--warn); color:var(--warn); }
+    .actions .fav-btn.on { background:linear-gradient(135deg,rgba(255,181,71,0.25),rgba(255,122,89,0.15)); border-color:var(--warn); color:#ffd28a; }
+    .actions .rm-btn { background:var(--panel2); border:1px solid var(--border); color:var(--muted); width:42px; padding:0; flex:0 0 42px; font-size:1rem; box-shadow:none; }
+    .actions .rm-btn:hover:not(:disabled) { border-color:var(--bad-bd); color:var(--bad); }
+    .tag-row { padding:0 16px 8px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-size:0.78rem; }
+    .tag-row .lab { color:var(--muted); margin-right:2px; }
+    .tag-pill { padding:4px 10px; border-radius:999px; border:1px solid var(--border); background:var(--panel2); color:var(--muted); cursor:pointer; font-size:0.75rem; transition:all var(--t-fast); }
+    .tag-pill:hover { border-color:var(--border2); color:var(--text2); }
+    .tag-pill.on.contacted { background:var(--good-bg); color:var(--good); border-color:var(--good-bd); }
+    .tag-pill.on.uncontacted { background:rgba(255,181,71,0.16); color:#ffd28a; border-color:rgba(255,181,71,0.4); }
+    .tag-row .when { margin-left:auto; color:var(--muted2); font-size:0.7rem; }
+    .meta { padding:9px 16px 14px; font-size:0.7rem; color:var(--muted); border-top:1px solid var(--border); margin-top:auto; display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+    .meta .left { overflow:hidden; text-overflow:ellipsis; }
+    .activity { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; font-size:0.68rem; font-weight:500; margin-left:6px; }
+    .activity.fresh { background:var(--good-bg); color:var(--good); border:1px solid var(--good-bd); }
+    .activity.warm { background:rgba(255,181,71,0.15); color:#ffd28a; border:1px solid rgba(255,181,71,0.35); }
+    .activity.cold { background:var(--bad-bg); color:#ffb4ab; border:1px solid var(--bad-bd); }
+    .activity.unknown { background:var(--panel3); color:var(--muted); border:1px solid var(--border); }
+    .comments { padding:6px 16px 8px; }
+    .comments .ttl { font-size:0.78rem; color:var(--muted); margin-bottom:6px; }
+    .comments .item { background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; margin-bottom:6px; font-size:0.78rem; color:var(--text2); line-height:1.4; }
+    .comments .item .top { display:flex; justify-content:space-between; gap:8px; margin-bottom:3px; font-size:0.72rem; }
+    .comments .item .who { color:var(--muted); }
+    .comments .item .lk { color:#ffd28a; font-variant-numeric:tabular-nums; }
+    .actions .ai-btn { background:linear-gradient(135deg,#7c5cff,#3d8bfd); border:none; color:#fff; width:auto; padding:0 12px; flex:0 0 auto; font-size:0.78rem; box-shadow:none; }
+    .actions .ai-btn:hover:not(:disabled) { box-shadow:0 4px 12px rgba(124,92,255,0.35); }
+    .ai-host { padding:6px 16px 8px; }
+    .ai-card { background:linear-gradient(135deg,rgba(124,92,255,0.12),rgba(61,139,253,0.08)); border:1px solid rgba(124,92,255,0.3); border-radius:10px; padding:12px; font-size:0.84rem; color:var(--text2); }
+    .ai-card .hd { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:0.82rem; font-weight:600; }
+    .ai-card .verdict { padding:3px 10px; border-radius:999px; font-size:0.74rem; font-weight:700; }
+    .ai-card .verdict.yes { background:var(--good-bg); color:var(--good); border:1px solid var(--good-bd); }
+    .ai-card .verdict.maybe { background:rgba(255,181,71,0.16); color:#ffd28a; border:1px solid rgba(255,181,71,0.4); }
+    .ai-card .verdict.no { background:var(--bad-bg); color:#ffb4ab; border:1px solid var(--bad-bd); }
+    .ai-card .row { display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
+    .ai-card .pill { background:var(--panel3); padding:3px 9px; border-radius:6px; font-size:0.75rem; color:var(--text); border:1px solid var(--border); font-variant-numeric:tabular-nums; }
+    .ai-card ul { margin:6px 0 0 18px; padding:0; font-size:0.8rem; }
+    .ai-card .warn { color:#ffb4ab; }
+    .platform-seg { display:inline-flex; border:1px solid var(--border); border-radius:999px; overflow:hidden; padding:3px; background:var(--panel); margin-right:8px; }
+    .platform-seg button { width:auto; margin:0; padding:6px 16px; border-radius:999px; background:transparent; color:var(--muted); border:none; font-weight:500; min-height:32px; box-shadow:none; }
+    .platform-seg button.active { background:var(--accent-grad); color:#fff; }
+    .actions .cmt-btn { background:var(--panel2); border:1px solid var(--border); color:var(--text2); width:auto; padding:0 12px; flex:0 0 auto; font-size:0.78rem; box-shadow:none; }
+    .actions .cmt-btn:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+    .login-btn { padding:8px 14px; font-size:0.8rem; background:linear-gradient(135deg,var(--warn),#ff7a59); border:none; color:#1a1408; min-height:36px; width:auto; margin-top:0; font-weight:600; box-shadow:none; }
+    .login-btn:hover:not(:disabled) { box-shadow:0 4px 12px rgba(255,181,71,0.3); }
+
+    .table-wrap { overflow-x:auto; background:var(--panel); border:1px solid var(--border); border-radius:var(--r-lg); padding:6px 12px; }
+    table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+    th, td { border-bottom:1px solid var(--border); padding:9px 10px; text-align:left; vertical-align:top; }
+    th { color:var(--muted); font-weight:500; font-size:0.78rem; letter-spacing:0.02em; }
+    tr:hover td { background:rgba(255,255,255,0.025); }
+    .tpill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:0.7rem; }
+    .tpill.ok { background:var(--good-bg); color:var(--good); }
+    .tpill.no { background:var(--bad-bg); color:var(--bad); }
+
+    .empty { padding:80px 20px; text-align:center; color:var(--muted); }
+    .empty .big { font-size:2.5rem; margin-bottom:10px; opacity:0.4; }
+    .empty .t { font-size:1rem; color:var(--text2); margin-bottom:4px; }
+    .empty .h { font-size:0.85rem; }
+
+    .skel { background:linear-gradient(90deg,var(--panel) 0%,var(--panel2) 50%,var(--panel) 100%); background-size:200% 100%; animation:shimmer 1.4s linear infinite; border-radius:var(--r-sm); }
+    @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+    .creator-skel { padding:18px; }
+    .creator-skel .row { display:flex; gap:12px; align-items:center; margin-bottom:14px; }
+    .creator-skel .avatar { width:56px; height:56px; border-radius:50%; }
+    .creator-skel .lines { flex:1; }
+    .creator-skel .l { height:12px; margin-bottom:6px; border-radius:3px; }
+
+    .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.2); border-top-color:#fff; border-radius:50%; animation:spin 0.8s linear infinite; vertical-align:-2px; margin-right:6px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .discovery-banner { background:linear-gradient(90deg, rgba(124,92,255,0.18), rgba(61,139,253,0.14)); border:1px solid rgba(124,92,255,0.32); padding:13px 18px; border-radius:var(--r-md); margin-bottom:14px; font-size:0.88rem; color:var(--text2); }
+    .discovery-banner strong { color:var(--text); }
+
+    .backdrop { position:fixed; inset:0; background:rgba(6,10,18,0.7); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:50; display:none; align-items:center; justify-content:center; padding:20px; animation:fade var(--t-mid) ease-out; }
+    .backdrop.open { display:flex; }
+    @keyframes fade { from { opacity:0; } to { opacity:1; } }
+    .modal { background:linear-gradient(180deg, var(--panel) 0%, #0e1622 100%); border:1px solid var(--border); border-radius:var(--r-xl); width:min(720px, 100%); max-height:92vh; display:flex; flex-direction:column; box-shadow:var(--shadow-3); animation:lift var(--t-slow) cubic-bezier(0.2,0.8,0.2,1); }
+    @keyframes lift { from { opacity:0; transform:translateY(20px) scale(0.96); } to { opacity:1; transform:translateY(0) scale(1); } }
+    .modal-head { display:flex; align-items:center; gap:14px; padding:18px 22px; border-bottom:1px solid var(--border); }
+    .modal-head .av { width:46px; height:46px; border-radius:50%; background:var(--accent-grad); flex-shrink:0; }
+    .modal-head .ttl { flex:1; min-width:0; }
+    .modal-head .ttl .t1 { font-weight:700; font-size:1rem; }
+    .modal-head .ttl .t2 { font-size:0.82rem; color:var(--muted); }
+    .modal-head .close { width:34px; height:34px; min-height:34px; padding:0; border-radius:50%; background:var(--panel2); border:1px solid var(--border); color:var(--muted); margin:0; box-shadow:none; font-size:1.1rem; line-height:1; }
+    .modal-head .close:hover { color:var(--text); border-color:var(--border2); }
+    .modal-body { padding:18px 22px; overflow-y:auto; flex:1; }
+    .modal-body label { margin-top:10px; }
+    .modal-body label:first-child { margin-top:0; }
+    .modal-foot { padding:14px 22px; border-top:1px solid var(--border); display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .modal-foot .acct { font-size:0.78rem; color:var(--muted); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .modal-foot button { margin-top:0; }
+    .modal-status { padding:10px 14px; border-radius:var(--r-sm); font-size:0.85rem; margin-bottom:12px; display:none; }
+    .modal-status.show { display:block; }
+    .modal-status.info { background:rgba(61,139,253,0.12); color:#a8c9ff; border:1px solid rgba(61,139,253,0.3); }
+    .modal-status.ok { background:var(--good-bg); color:var(--good); border:1px solid var(--good-bd); }
+    .modal-status.err { background:var(--bad-bg); color:#ffb4ab; border:1px solid var(--bad-bd); }
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    @media (max-width:600px) { .field-row { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div style="flex:1">
+        <h1>TikTok 博主发现 · Apify</h1>
+        <div class="sub">填关键词自动发现领域博主，一键起草外联邮件，jovidasmith@gmail.com 直发。</div>
+      </div>
+      <button type="button" id="tmplBtn" class="ghost" style="margin-top:0; width:auto; padding:8px 14px; font-size:0.82rem; min-height:36px;" title="编辑默认邮件模板">✏ 邮件模板</button>
+      <button type="button" id="loginBtn" class="login-btn" style="display:none" title="清掉旧 token 并重新走 Google OAuth">🔑 重新登录</button>
+      <div id="acctChip" class="acct-chip" title="点开邮件工具状态"><span class="dot"></span><span id="acctText">检查邮件工具…</span></div>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <span style="font-size:0.78rem;color:var(--muted);margin-right:8px;">平台</span>
+      <div class="platform-seg">
+        <button type="button" id="platTT" class="active" data-platform="tiktok">🎵 TikTok</button>
+        <button type="button" id="platIG" data-platform="instagram">📸 Instagram</button>
+      </div>
+    </div>
+
+    <div class="grid-form">
+      <div class="card">
+        <label for="token">Apify Token</label>
+        <input id="token" type="password" autocomplete="off" placeholder="apify_api_..." />
+        <p class="hint">仅 POST 到本机 <code>/api/screen</code>。<a href="https://console.apify.com/account/integrations" target="_blank" rel="noopener">从 Apify 控制台取 Token →</a></p>
+
+        <label for="keywords" style="margin-top:14px">关键词（用于发现+匹配）</label>
+        <input id="keywords" placeholder="fitness, gym, weight loss" />
+        <p class="hint">逗号分隔。无用户名时按这些关键词搜索 TikTok 自动发现博主；同时也用来匹配 bio + 文案。</p>
+
+        <label for="handles" style="margin-top:14px">或：直接给定 TikTok 用户名（每行一个，跳过发现）</label>
+        <textarea id="handles" placeholder="留空 → 自动发现模式&#10;或一行一个：apifytech&#10;tiktok"></textarea>
+      </div>
+
+      <div class="card">
+        <div class="row2">
+          <div>
+            <label for="threshold">筛选规则</label>
+            <select id="threshold">
+              <option value="tiktok">TikTok：均播 &gt; 粉丝</option>
+              <option value="other">其他：均播 &gt; 半粉丝</option>
+            </select>
+          </div>
+          <div>
+            <label for="days">统计窗口（天）</label>
+            <input id="days" type="number" min="1" max="90" value="30" />
+          </div>
+        </div>
+        <div class="row2" style="margin-top:12px">
+          <div>
+            <label for="minFollowers">最低粉丝</label>
+            <input id="minFollowers" type="number" min="0" value="1000" />
+          </div>
+          <div>
+            <label for="discoverLimit">最多发现博主数</label>
+            <input id="discoverLimit" type="number" min="1" max="100" value="30" />
+          </div>
+        </div>
+        <div class="row3" style="margin-top:12px">
+          <div>
+            <label for="resultsPerPage">每人抓取条数</label>
+            <input id="resultsPerPage" type="number" min="1" max="200" value="80" />
+          </div>
+          <div>
+            <label for="chunkSize">每批人数</label>
+            <input id="chunkSize" type="number" min="1" max="50" value="25" />
+          </div>
+          <div>
+            <label for="waitSecs">等待上限(秒)</label>
+            <input id="waitSecs" type="number" min="60" max="3600" value="900" />
+          </div>
+        </div>
+
+        <label class="check" style="margin-top:8px; padding:8px 10px; background:rgba(255,181,71,0.08); border:1px solid rgba(255,181,71,0.2); border-radius:8px; color:#ffd28a;"><input type="checkbox" id="downloadTopVideo" /> 下载每人 Top 视频用于内嵌播放（额外 Apify 开销，每人约 1 个视频）</label>
+        <details style="margin-top:10px">
+          <summary>高级：覆盖 Apify Actor / 邮件工具地址</summary>
+          <div style="margin-top:8px">
+            <label for="actor">个人主页 Actor（默认 clockworks/tiktok-profile-scraper）</label>
+            <input id="actor" placeholder="clockworks/tiktok-profile-scraper" />
+            <label for="searchActor" style="margin-top:10px">搜索 Actor（默认 clockworks/tiktok-scraper）</label>
+            <input id="searchActor" placeholder="clockworks/tiktok-scraper" />
+            <label for="discoverResultsPerPage" style="margin-top:10px">搜索每页结果</label>
+            <input id="discoverResultsPerPage" type="number" min="10" max="200" value="60" />
+            <label for="senderEmail" style="margin-top:10px">发件 Gmail 地址</label>
+            <input id="senderEmail" type="email" autocomplete="off" placeholder="jovidasmith@gmail.com" />
+            <label for="appPassword" style="margin-top:10px">Gmail App Password（16 位）</label>
+            <input id="appPassword" type="password" autocomplete="off" placeholder="abcd efgh ijkl mnop（去 myaccount.google.com/apppasswords 生成）" />
+            <p class="hint">需先在 <a href="https://myaccount.google.com/security" target="_blank" rel="noopener">Google 账号</a> 开启两步验证 → 然后到 <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">App Passwords</a> 生成 16 位密码。直接 SMTP，不走 OAuth，不会过期。</p>
+            <label for="senderName" style="margin-top:8px">发件人显示名（可选）</label>
+            <input id="senderName" placeholder="Jovida Team" />
+            <label for="geminiKey" style="margin-top:10px">Gemini API Key（用于 AI 建议）</label>
+            <input id="geminiKey" type="password" autocomplete="off" placeholder="AIza..." />
+            <p class="hint">从 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> 拿。仅本地存浏览器 localStorage。</p>
+            <label for="geminiModel" style="margin-top:8px">Gemini 模型（默认 gemini-2.5-flash）</label>
+            <input id="geminiModel" placeholder="gemini-2.5-flash" />
+          </div>
+        </details>
+
+        <button type="button" id="run" style="margin-top:14px">开始</button>
+        <button type="button" id="csv" class="secondary" disabled>导出 CSV</button>
+      </div>
+    </div>
+
+    <div id="msg"></div>
+
+    <div class="toolbar" id="toolbar" style="display:none">
+      <div class="badges" id="counts"></div>
+      <div class="toolbar-spacer"></div>
+      <label class="check"><input type="checkbox" id="onlyPass" /> 仅显示合格</label>
+      <label class="check"><input type="checkbox" id="onlyEmail" /> 仅有邮箱</label>
+      <select id="sortBy">
+        <option value="pass">排序：合格优先</option>
+        <option value="followers">排序：粉丝多到少</option>
+        <option value="avg">排序：均播多到少</option>
+        <option value="hearts">排序：总赞多到少</option>
+      </select>
+      <div class="seg">
+        <button type="button" id="viewCards" class="active">卡片</button>
+        <button type="button" id="viewTable">表格</button>
+        <button type="button" id="viewFavs">收藏 <span id="favCount" style="opacity:0.7"></span></button>
+      </div>
+    </div>
+
+    <div id="discovery"></div>
+    <div id="cards" class="cards"></div>
+    <div id="table" class="table-wrap" style="display:none"><table id="tbl"><thead><tr></tr></thead><tbody></tbody></table></div>
+    <div id="empty" class="empty">
+      <div class="big">🔍</div>
+      <div class="t">还没有结果</div>
+      <div class="h">默认是发现模式：填好上方关键词，点【开始】。</div>
+    </div>
+  </div>
+
+  <!-- Template editor modal -->
+  <div class="backdrop" id="tmplModal" role="dialog" aria-modal="true" aria-labelledby="tmplModalTitle">
+    <div class="modal" role="document">
+      <div class="modal-head">
+        <div class="ttl" style="flex:1">
+          <div class="t1" id="tmplModalTitle">默认邮件模板</div>
+          <div class="t2">每张博主卡的"起草邮件"会用这个模板填充，可用变量：<code>{{name}}</code> <code>{{username}}</code> <code>{{handle}}</code> <code>{{followers}}</code> <code>{{avg}}</code> <code>{{profile_url}}</code></div>
+        </div>
+        <button type="button" class="close" id="tmplClose" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-status" id="tmplStatus" role="status" aria-live="polite"></div>
+        <label for="tmplSubject">主题模板</label>
+        <input id="tmplSubject" />
+        <label for="tmplBody" style="margin-top:12px">正文模板（HTML）</label>
+        <textarea id="tmplBody" style="min-height:280px; font-family:ui-monospace,Consolas,monospace; font-size:0.84rem"></textarea>
+        <p class="hint">变量在打开博主卡时会用该博主真实数据替换。</p>
+      </div>
+      <div class="modal-foot">
+        <span class="acct" id="tmplSavedHint">未保存</span>
+        <button type="button" class="ghost" id="tmplReset">恢复默认</button>
+        <button type="button" id="tmplSave">保存为默认</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Email composer modal -->
+  <div class="backdrop" id="mailModal" role="dialog" aria-modal="true" aria-labelledby="mailModalTitle">
+    <div class="modal" role="document">
+      <div class="modal-head">
+        <img id="mailAvatar" class="av" alt="" />
+        <div class="ttl">
+          <div class="t1" id="mailModalTitle">起草邮件</div>
+          <div class="t2" id="mailRecipientHint"></div>
+        </div>
+        <button type="button" class="close" id="mailClose" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-status" id="mailStatus" role="status" aria-live="polite"></div>
+        <label for="mailTo">收件人</label>
+        <input id="mailTo" placeholder="name@example.com" />
+        <p class="hint">如博主 bio 里抓到了邮箱已自动填入。多个邮箱用逗号分隔。</p>
+        <label for="mailSubject" style="margin-top:12px">主题</label>
+        <input id="mailSubject" />
+        <label for="mailBody" style="margin-top:12px">正文（HTML）</label>
+        <textarea id="mailBody" style="min-height:220px"></textarea>
+        <div class="field-row" style="margin-top:12px">
+          <label class="check" style="padding:0; margin:0"><input type="checkbox" id="mailPersonalize" checked /> 发送时再次展开 {{ }} 变量</label>
+          <label class="check" style="padding:0; margin:0"><input type="checkbox" id="mailPlain" /> 纯文本（不渲染 HTML）</label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span class="acct" id="mailFromText">发件人：（邮件工具未连接）</span>
+        <button type="button" class="ghost" id="mailCancel">取消</button>
+        <button type="button" id="mailSend">发送</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  var lastRows = [];
+  var lastDiscovery = null;
+  var view = 'cards';
+  var mailToolStatus = { configured:false, sender:null };
+  var openCreator = null;
+
+  // ---- favorites (persisted in localStorage) ----
+  var FAV_KEY = 'favCreators_v1';
+  var favs = {};
+  function loadFavs(){ try { var raw = localStorage.getItem(FAV_KEY); if(raw){ favs = JSON.parse(raw) || {}; } } catch(e){ favs = {}; } if(typeof favs !== 'object' || !favs) favs = {}; }
+  function saveFavs(){ try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch(e){} updateFavCount(); }
+  function favKey(u){ return String(u||'').toLowerCase(); }
+  function getFav(u){ return favs[favKey(u)] || null; }
+  function addFav(creator){ if(!creator || !creator.username) return; var k = favKey(creator.username); if(favs[k]) return; favs[k] = { creator: creator, status:'uncontacted', addedAt: Date.now(), lastContactedAt: null }; saveFavs(); }
+  function removeFav(u){ var k = favKey(u); if(favs[k]){ delete favs[k]; saveFavs(); } }
+  function setFavStatus(u, status){ var k = favKey(u); var f = favs[k]; if(!f) return; f.status = status; if(status === 'contacted') f.lastContactedAt = Date.now(); saveFavs(); }
+  function markContacted(u){ var k = favKey(u); if(!favs[k] && openCreator){ addFav(openCreator); } setFavStatus(u, 'contacted'); }
+  function updateFavCount(){ var n = Object.keys(favs).length; var el = document.getElementById('favCount'); if(el) el.textContent = n ? '(' + n + ')' : ''; }
+  function fmtDateTime(ms){ if(!ms) return ''; try { var d = new Date(ms); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); } catch(e){ return ''; } }
+  loadFavs();
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function escAttr(s){ return esc(s); }
+  function setErr(t){ $('msg').innerHTML = t ? '<div class="err">'+esc(t)+'</div>' : ''; }
+  function fmt(n){ n = Number(n) || 0; if(n >= 1e9) return (n/1e9).toFixed(1).replace(/\.0$/,'')+'B'; if(n >= 1e6) return (n/1e6).toFixed(1).replace(/\.0$/,'')+'M'; if(n >= 1e3) return (n/1e3).toFixed(1).replace(/\.0$/,'')+'K'; return String(Math.round(n)); }
+  function fmtDate(iso){ if(!iso) return '—'; try { return iso.slice(0,10); } catch(e){ return '—'; } }
+  function initial(s){ s=String(s||'').trim(); return s ? s.charAt(0).toUpperCase() : '?'; }
+  function getMailBaseUrl(){ return ''; /* SMTP-direct mode: send via local /api/send-mail */ }
+
+  try { var t=localStorage.getItem('apifyToken'); if(t) $('token').value=t; } catch(e){}
+  try { var k=localStorage.getItem('lastKeywords'); if(k) $('keywords').value=k; } catch(e){}
+  try { var se=localStorage.getItem('senderEmail'); if(se) $('senderEmail').value=se; } catch(e){}
+  try { var ap=localStorage.getItem('appPassword'); if(ap) $('appPassword').value=ap; } catch(e){}
+  try { var sn=localStorage.getItem('senderName'); if(sn) $('senderName').value=sn; } catch(e){}
+  function persist(){
+    try { localStorage.setItem('apifyToken', $('token').value.trim()); } catch(e){}
+    try { localStorage.setItem('lastKeywords', $('keywords').value.trim()); } catch(e){}
+    try { localStorage.setItem('senderEmail', $('senderEmail').value.trim()); } catch(e){}
+    try { localStorage.setItem('appPassword', $('appPassword').value.trim()); } catch(e){}
+    try { localStorage.setItem('senderName', $('senderName').value.trim()); } catch(e){}
+  }
+
+  // ---- mail status (now: just check if SMTP creds are filled) ----
+  function refreshMailStatus(){
+    var sender = ($('senderEmail').value || '').trim();
+    var pw = ($('appPassword').value || '').trim();
+    var chip = $('acctChip'), txt = $('acctText');
+    if(sender && pw){
+      mailToolStatus.configured = true;
+      mailToolStatus.sender = sender;
+      chip.className='acct-chip ok';
+      chip.title='SMTP 已配置，发件人：' + sender + '。直发不依赖外部进程。';
+      txt.textContent='📧 ' + sender;
+    } else {
+      mailToolStatus.configured = false;
+      mailToolStatus.sender = null;
+      chip.className='acct-chip warn';
+      chip.title='请在 高级 里填发件 Gmail + App Password';
+      txt.textContent='📧 未配置发件邮箱';
+    }
+    updateMailButtons();
+    updateLoginBtn();
+  }
+  function updateLoginBtn(){
+    var b = $('loginBtn'); if(!b) return;
+    b.style.display = mailToolStatus.configured ? 'none' : 'inline-flex';
+    b.textContent = '🔧 配置发件';
+    b.title = '展开高级面板填发件 Gmail + App Password';
+  }
+  function openConfigHelp(){
+    // Just expand the advanced details and focus sender field
+    var det = document.querySelector('details');
+    if(det) det.open = true;
+    setTimeout(function(){ var el=$('senderEmail'); if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); } }, 50);
+  }
+  $('loginBtn').onclick = openConfigHelp;
+  $('senderEmail').addEventListener('input', refreshMailStatus);
+  $('appPassword').addEventListener('input', refreshMailStatus);
+  $('senderName').addEventListener('change', function(){ try { localStorage.setItem('senderName', $('senderName').value.trim()); } catch(e){} });
+  function updateMailButtons(){
+    var btns = document.querySelectorAll('.mail-btn');
+    btns.forEach(function(b){
+      var has = b.getAttribute('data-has-email') === '1';
+      if(!mailToolStatus.configured){ b.disabled = true; b.title='请先在 高级 里配置发件 Gmail + App Password'; b.textContent='✉ 未配置发件'; return; }
+      b.disabled = false;
+      b.title = has ? '起草邮件给博主（自动填收件人）' : '起草邮件（需手填收件人）';
+      b.textContent = has ? '✉ 起草邮件' : '✉ 起草邮件（手填收件人）';
+    });
+  }
+  $('acctChip').addEventListener('click', refreshMailStatus);
+
+  // ---- screening ----
+  function load(){
+    persist();
+    var token = $('token').value.trim();
+    var handles = $('handles').value.trim();
+    var keywords = $('keywords').value.trim();
+    if(!token){ setErr('请填入 Apify Token'); return; }
+    if(!handles && !keywords){ setErr('请填入关键词（自动发现）或用户名'); return; }
+    setErr('');
+    $('run').disabled = true; $('run').innerHTML='<span class="spinner"></span>抓取中…';
+    $('csv').disabled = true;
+    showSkeleton();
+
+    var body = {
+      apifyToken: token, handles: handles, keywords: keywords,
+      threshold: $('threshold').value,
+      days: parseInt($('days').value,10)||30,
+      minFollowers: parseInt($('minFollowers').value,10)||0,
+      resultsPerPage: parseInt($('resultsPerPage').value,10)||80,
+      chunkSize: parseInt($('chunkSize').value,10)||25,
+      waitSecs: parseInt($('waitSecs').value,10)||900,
+      discoverLimit: parseInt($('discoverLimit').value,10)||30,
+      discoverResultsPerPage: parseInt($('discoverResultsPerPage').value,10)||60,
+      downloadTopVideo: $('downloadTopVideo').checked,
+      platform: currentPlatform
+    };
+    var act=$('actor').value.trim(); if(act) body.actor=act;
+    var sact=$('searchActor').value.trim(); if(sact) body.searchActor=sact;
+
+    fetch('/api/screen', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
+      .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, j:j }; }); })
+      .then(function(x){
+        $('run').disabled = false; $('run').innerHTML='开始';
+        if(!x.ok || !x.j.ok){ setErr((x.j && x.j.error) ? x.j.error : '请求失败'); lastRows=[]; lastDiscovery=null; render(); return; }
+        lastRows = x.j.rows || []; lastDiscovery = x.j.discovery || null;
+        $('csv').disabled = !lastRows.length;
+        render();
+      })
+      .catch(function(e){ $('run').disabled = false; $('run').innerHTML='开始'; setErr(String(e)); lastRows=[]; render(); });
+  }
+
+  function showSkeleton(){
+    $('toolbar').style.display='none';
+    $('table').style.display='none';
+    $('cards').style.display='grid';
+    $('empty').style.display='none';
+    var html=''; for(var i=0;i<6;i++){
+      html += '<div class="creator creator-skel"><div class="row"><div class="skel avatar"></div><div class="lines"><div class="skel l" style="width:60%"></div><div class="skel l" style="width:40%"></div></div></div><div class="skel l" style="height:64px;margin-bottom:10px"></div><div class="skel l" style="width:90%"></div><div class="skel l" style="width:80%"></div></div>';
+    }
+    $('cards').innerHTML = html;
+  }
+
+  function discoveryBanner(){
+    var d = lastDiscovery; if(!d) return '';
+    return '<div class="discovery-banner">通过关键词 <strong>' + esc((d.keywords||[]).join(', ')) +
+      '</strong> 由 <code>' + esc(d.search_actor||'') + '</code> 发现 <strong>' + (d.raw_count||0) +
+      '</strong> 名候选博主，已截取前 <strong>' + (d.kept||0) + '</strong> 名进行画像分析。</div>';
+  }
+
+  function counts(rows){
+    var pass = rows.filter(function(r){return r.pass_all;}).length;
+    var kw = rows.filter(function(r){return r.keyword_matched;}).length;
+    var em = rows.filter(function(r){return r.contacts && r.contacts.emails && r.contacts.emails.length;}).length;
+    return '<span class="badge"><strong>' + rows.length + '</strong>位博主</span>' +
+      '<span class="badge good">✓ <strong>' + pass + '</strong>合格</span>' +
+      '<span class="badge bad">✗ <strong>' + (rows.length-pass) + '</strong>不合格</span>' +
+      (kw ? '<span class="badge"><strong>' + kw + '</strong>关键词命中</span>' : '') +
+      (em ? '<span class="badge"><strong>' + em + '</strong>有邮箱</span>' : '');
+  }
+
+  function sortRows(rows){
+    var key = $('sortBy').value;
+    var copy = rows.slice();
+    copy.sort(function(a,b){
+      if(key==='pass'){ if(a.pass_all !== b.pass_all) return a.pass_all ? -1 : 1; return (b.followers||0) - (a.followers||0); }
+      if(key==='followers') return (b.followers||0) - (a.followers||0);
+      if(key==='avg') return (b.avg_play_in_window||0) - (a.avg_play_in_window||0);
+      if(key==='hearts') return (b.total_hearts||0) - (a.total_hearts||0);
+      return 0;
+    });
+    return copy;
+  }
+  function applyFilter(rows){
+    var r = rows;
+    if($('onlyPass').checked) r = r.filter(function(x){return x.pass_all;});
+    if($('onlyEmail').checked) r = r.filter(function(x){return x.contacts && x.contacts.emails && x.contacts.emails.length;});
+    return r;
+  }
+
+  function videoBlock(vids, mp4){
+    if(!vids || !vids.length) return '';
+    var html = '';
+    var startIdx = 0;
+    if(mp4 && vids[0]){
+      var v = vids[0];
+      html += '<div class="top-video"><video controls preload="none" poster="' + escAttr(v.cover||'') + '" src="' + escAttr(mp4) + '"></video>'
+        + '<div class="cap"><span>▶ ' + fmt(v.plays) + ' · ♥ ' + fmt(v.likes) + '</span>'
+        + (v.url ? '<a href="' + escAttr(v.url) + '" target="_blank" rel="noopener">在 TikTok 看 →</a>' : '')
+        + '</div></div>';
+      startIdx = 1;
+    }
+    var cells = [];
+    var slots = mp4 ? 3 : 4;
+    for(var i=0;i<slots;i++){
+      var v = vids[startIdx + i];
+      if(!v){ cells.push('<div class="vid"><div class="ph">—</div></div>'); continue; }
+      var inner = v.cover
+        ? '<img loading="lazy" referrerpolicy="no-referrer" src="' + escAttr(v.cover) + '" onerror="this.style.display=\'none\';this.parentNode.querySelector(\'.ph\').style.display=\'flex\'" alt="" /><div class="ph" style="display:none">no img</div>'
+        : '<div class="ph">no img</div>';
+      var plays = '<span class="plays">▶ ' + fmt(v.plays) + '</span>';
+      cells.push(v.url
+        ? '<a class="vid" href="' + escAttr(v.url) + '" target="_blank" rel="noopener" title="' + escAttr(v.caption||'') + '">' + inner + plays + '</a>'
+        : '<div class="vid">' + inner + plays + '</div>');
+    }
+    html += '<div class="videos ' + (mp4?'three':'') + '">' + cells.join('') + '</div>';
+    return html;
+  }
+
+  function contactsRow(c){
+    if(!c) return '';
+    var parts = [];
+    (c.emails||[]).forEach(function(e){ parts.push('<span class="c">✉ <a href="mailto:'+escAttr(e)+'">'+esc(e)+'</a></span>'); });
+    (c.instagram||[]).forEach(function(h){ parts.push('<span class="c">IG @'+esc(h)+'</span>'); });
+    (c.youtube||[]).forEach(function(h){ parts.push('<span class="c">YT '+esc(h)+'</span>'); });
+    return parts.length ? '<div class="contacts">'+parts.join('')+'</div>' : '';
+  }
+
+  function actionsRow(idx, hasEmail, isFav, hasVids){
+    return '<div class="actions">'
+      + '<button type="button" class="mail-btn" data-idx="' + idx + '" data-has-email="' + (hasEmail?'1':'0') + '">✉ 起草邮件</button>'
+      + '<button type="button" class="ai-btn" data-idx="' + idx + '" title="Gemini 评估：是否触达 + 推荐价格">🤖 AI</button>'
+      + (hasVids ? '<button type="button" class="cmt-btn" data-idx="' + idx + '" title="拉取该博主热门视频的 Top 评论（额外 Apify 开销）">💬 评论</button>' : '')
+      + '<button type="button" class="fav-btn ' + (isFav?'on':'') + '" data-idx="' + idx + '" title="' + (isFav?'已收藏（再点取消）':'收藏到我的目录') + '">' + (isFav?'★':'☆') + '</button>'
+      + '</div>';
+  }
+  function activityBadge(lastIso){
+    if(!lastIso) return '<span class="activity unknown">未知</span>';
+    try {
+      var ms = Date.parse(lastIso); if(isNaN(ms)) return '<span class="activity unknown">未知</span>';
+      var days = Math.floor((Date.now() - ms) / 86400000);
+      if(days <= 14) return '<span class="activity fresh">活跃 · ' + days + 'd 前</span>';
+      if(days <= 45) return '<span class="activity warm">一般 · ' + days + 'd 前</span>';
+      return '<span class="activity cold">冷淡 · ' + days + 'd 前</span>';
+    } catch(e){ return '<span class="activity unknown">未知</span>'; }
+  }
+
+  function cardHtml(r, idx){
+    var pass = !!r.pass_all;
+    var passEl = '<span class="pass ' + (pass?'ok':'no') + '">' + (pass?'✓ 合格':'✗ 不合格') + '</span>';
+    var av = r.avatar
+      ? '<img class="avatar' + (r.verified?' verified':'') + '" loading="lazy" referrerpolicy="no-referrer" src="' + escAttr(r.avatar) + '" onerror="this.outerHTML=\'<div class=\\\'avatar avatar-fallback\\\'>'+esc(initial(r.nickname||r.username))+'</div>\'" alt="" />'
+      : '<div class="avatar avatar-fallback">' + esc(initial(r.nickname||r.username)) + '</div>';
+    var name = esc(r.nickname || r.username || '');
+    var v = r.verified ? '<span class="vbadge" title="verified">✓</span>' : '';
+    var pills = '';
+    if(r.region) pills += '<span class="pill region">' + esc(r.region) + '</span>';
+    if(r.keyword_matched) pills += '<span class="pill kw">关键词命中</span>';
+    var bio = r.bio ? '<div class="bio">' + esc(r.bio) + '</div>' : '';
+    var stats = ''
+      + '<div class="stat"><div class="n">' + fmt(r.followers) + '</div><div class="l">粉丝</div></div>'
+      + '<div class="stat"><div class="n">' + fmt(r.total_hearts) + '</div><div class="l">总赞</div></div>'
+      + '<div class="stat"><div class="n">' + fmt(r.total_videos_lifetime) + '</div><div class="l">视频</div></div>'
+      + '<div class="stat hl"><div class="n">' + fmt(r.avg_play_in_window||0) + '</div><div class="l">均播('+(r.posts_in_window||0)+')</div></div>';
+    var meta = '<div class="meta"><span class="left">最近发布 ' + esc(fmtDate(r.last_post_at)) + activityBadge(r.last_post_at) + '</span><span><a href="' + escAttr(r.profile_url) + '" target="_blank" rel="noopener">在 TikTok 打开 →</a></span></div>';
+    var hasEmail = !!(r.contacts && r.contacts.emails && r.contacts.emails.length);
+    var isFav = !!getFav(r.username);
+    var topVids = r.recent_videos_top || [];
+
+    return '<div class="creator ' + (pass?'':'fail') + '" data-username="' + escAttr(r.username) + '">'
+      + '<div class="head">' + av
+        + '<div class="who"><div class="name-line"><span class="name" title="' + escAttr(r.nickname||'') + '">' + name + '</span>' + v + '</div>'
+        + '<a class="handle" href="' + escAttr(r.profile_url) + '" target="_blank" rel="noopener">@' + esc(r.username) + '</a><div class="pills">' + pills + '</div></div>'
+        + passEl
+      + '</div>'
+      + bio
+      + '<div class="stats">' + stats + '</div>'
+      + videoBlock(topVids, r.top_video_mp4)
+      + '<div class="ai-host" data-host="' + escAttr(r.username) + '"></div>'
+      + '<div class="cmt-host" data-host="' + escAttr(r.username) + '"></div>'
+      + contactsRow(r.contacts)
+      + actionsRow(idx, hasEmail, isFav, topVids.length > 0)
+      + meta
+      + '</div>';
+  }
+
+  function favCardHtml(fav, idx){
+    var r = fav.creator;
+    var av = r.avatar
+      ? '<img class="avatar' + (r.verified?' verified':'') + '" loading="lazy" referrerpolicy="no-referrer" src="' + escAttr(r.avatar) + '" onerror="this.outerHTML=\'<div class=\\\'avatar avatar-fallback\\\'>'+esc(initial(r.nickname||r.username))+'</div>\'" alt="" />'
+      : '<div class="avatar avatar-fallback">' + esc(initial(r.nickname||r.username)) + '</div>';
+    var name = esc(r.nickname || r.username || '');
+    var v = r.verified ? '<span class="vbadge" title="verified">✓</span>' : '';
+    var bio = r.bio ? '<div class="bio">' + esc(r.bio) + '</div>' : '';
+    var stats = ''
+      + '<div class="stat"><div class="n">' + fmt(r.followers) + '</div><div class="l">粉丝</div></div>'
+      + '<div class="stat"><div class="n">' + fmt(r.total_hearts) + '</div><div class="l">总赞</div></div>'
+      + '<div class="stat"><div class="n">' + fmt(r.total_videos_lifetime) + '</div><div class="l">视频</div></div>'
+      + '<div class="stat hl"><div class="n">' + fmt(r.avg_play_in_window||0) + '</div><div class="l">均播('+(r.posts_in_window||0)+')</div></div>';
+    var hasEmail = !!(r.contacts && r.contacts.emails && r.contacts.emails.length);
+    var status = fav.status || 'uncontacted';
+    var when = fav.lastContactedAt ? '上次联系：' + esc(fmtDateTime(fav.lastContactedAt)) : '加入：' + esc(fmtDateTime(fav.addedAt));
+    var pass = !!r.pass_all;
+    var passEl = '<span class="pass ' + (pass?'ok':'no') + '">' + (pass?'✓ 合格':'✗ 不合格') + '</span>';
+    var tagRow = '<div class="tag-row"><span class="lab">状态</span>'
+      + '<button class="tag-pill uncontacted ' + (status==='uncontacted'?'on':'') + '" data-fav-u="' + escAttr(r.username) + '" data-set="uncontacted">未联系</button>'
+      + '<button class="tag-pill contacted ' + (status==='contacted'?'on':'') + '" data-fav-u="' + escAttr(r.username) + '" data-set="contacted">已联系</button>'
+      + '<span class="when">' + when + '</span></div>';
+    var topVids = r.recent_videos_top || [];
+    var actions = '<div class="actions">'
+      + '<button type="button" class="mail-btn" data-idx="' + idx + '" data-has-email="' + (hasEmail?'1':'0') + '">✉ 起草邮件</button>'
+      + (topVids.length ? '<button type="button" class="cmt-btn" data-idx="' + idx + '">💬 评论</button>' : '')
+      + '<button type="button" class="rm-btn" data-fav-u="' + escAttr(r.username) + '" title="从收藏移除">✕</button>'
+      + '</div>';
+    var meta = '<div class="meta"><span class="left">最近发布 ' + esc(fmtDate(r.last_post_at)) + activityBadge(r.last_post_at) + '</span><span><a href="' + escAttr(r.profile_url) + '" target="_blank" rel="noopener">在 TikTok 打开 →</a></span></div>';
+
+    return '<div class="creator ' + (status==='contacted'?'':'fail') + '">'
+      + '<div class="head">' + av
+        + '<div class="who"><div class="name-line"><span class="name" title="' + escAttr(r.nickname||'') + '">' + name + '</span>' + v + '</div>'
+        + '<a class="handle" href="' + escAttr(r.profile_url) + '" target="_blank" rel="noopener">@' + esc(r.username) + '</a></div>'
+        + passEl
+      + '</div>'
+      + tagRow
+      + bio
+      + '<div class="stats">' + stats + '</div>'
+      + videoBlock(topVids, r.top_video_mp4)
+      + '<div class="ai-host" data-host="' + escAttr(r.username) + '"></div>'
+      + '<div class="cmt-host" data-host="' + escAttr(r.username) + '"></div>'
+      + contactsRow(r.contacts)
+      + actions
+      + meta
+      + '</div>';
+  }
+
+  var favViewList = [];
+  function buildFavList(){
+    favViewList = Object.keys(favs).map(function(k){ return favs[k]; }).sort(function(a,b){ return (b.addedAt||0) - (a.addedAt||0); });
+    return favViewList;
+  }
+
+  function wireCardActions(scope, source){
+    scope.querySelectorAll('.mail-btn').forEach(function(b){
+      b.addEventListener('click', function(){
+        var idx = parseInt(b.getAttribute('data-idx'),10);
+        var creator = (source === 'favs') ? (favViewList[idx] && favViewList[idx].creator) : lastRows[idx];
+        if(creator) openMailModal(creator);
+      });
+    });
+    scope.querySelectorAll('.fav-btn').forEach(function(b){
+      b.addEventListener('click', function(){
+        var idx = parseInt(b.getAttribute('data-idx'),10);
+        var creator = lastRows[idx]; if(!creator) return;
+        if(getFav(creator.username)){ removeFav(creator.username); } else { addFav(creator); }
+        render();
+      });
+    });
+    scope.querySelectorAll('.cmt-btn').forEach(function(b){
+      b.addEventListener('click', function(){
+        var idx = parseInt(b.getAttribute('data-idx'),10);
+        var creator = (source === 'favs') ? (favViewList[idx] && favViewList[idx].creator) : lastRows[idx];
+        if(creator) loadComments(creator, b);
+      });
+    });
+    scope.querySelectorAll('.ai-btn').forEach(function(b){
+      b.addEventListener('click', function(){
+        var idx = parseInt(b.getAttribute('data-idx'),10);
+        var creator = (source === 'favs') ? (favViewList[idx] && favViewList[idx].creator) : lastRows[idx];
+        if(creator) loadAiAdvice(creator, b);
+      });
+    });
+    scope.querySelectorAll('.tag-pill').forEach(function(b){
+      b.addEventListener('click', function(){ setFavStatus(b.getAttribute('data-fav-u'), b.getAttribute('data-set')); render(); });
+    });
+    scope.querySelectorAll('.rm-btn').forEach(function(b){
+      b.addEventListener('click', function(){ var u=b.getAttribute('data-fav-u'); if(confirm('从收藏移除 @'+u+'？')){ removeFav(u); render(); } });
+    });
+    updateMailButtons();
+  }
+
+  function tableHtml(rows){
+    var cols = [
+      {k:'username', t:'用户'}, {k:'nickname', t:'昵称'},
+      {k:'followers', t:'粉丝', f:fmt}, {k:'avg_play_in_window', t:'均播', f:fmt},
+      {k:'required_avg_for_rule', t:'阈值', f:fmt}, {k:'posts_in_window', t:'窗口条数'},
+      {k:'pass_all', t:'合格', f:function(v){return '<span class="tpill '+(v?'ok':'no')+'">'+(v?'是':'否')+'</span>';}},
+      {k:'keyword_matched', t:'KW命中', f:function(v){return v==null?'—':(v?'✓':'');}},
+      {k:'last_post_at', t:'最近', f:fmtDate}, {k:'region', t:'区域'},
+      {k:'profile_url', t:'链接', f:function(v){return v?'<a href="'+escAttr(v)+'" target="_blank" rel="noopener">→</a>':'';}}
+    ];
+    var th = cols.map(function(c){return '<th>'+esc(c.t)+'</th>';}).join('');
+    var tb = rows.map(function(r){ return '<tr>' + cols.map(function(c){ var v=r[c.k]; var s=c.f?c.f(v):(v==null?'':esc(v)); return '<td>'+s+'</td>'; }).join('')+'</tr>'; }).join('');
+    return { th: th, tb: tb };
+  }
+
+  function render(){
+    updateFavCount();
+    if(view === 'favs'){
+      buildFavList();
+      $('discovery').innerHTML = '';
+      $('table').style.display='none';
+      $('cards').style.display='grid';
+      if(!favViewList.length){
+        $('toolbar').style.display='flex';
+        $('counts').innerHTML = '<span class="badge">收藏 <strong>0</strong></span>';
+        $('cards').innerHTML = '';
+        $('empty').style.display='block';
+        $('empty').innerHTML = '<div class="big">★</div><div class="t">收藏目录为空</div><div class="h">在卡片上点 ☆ 把博主加进来。</div>';
+        return;
+      }
+      $('empty').style.display='none';
+      $('toolbar').style.display='flex';
+      $('counts').innerHTML = '<span class="badge"><strong>' + favViewList.length + '</strong>位收藏</span>'
+        + '<span class="badge good"><strong>' + favViewList.filter(function(f){return f.status==='contacted';}).length + '</strong>已联系</span>'
+        + '<span class="badge"><strong>' + favViewList.filter(function(f){return f.status!=='contacted';}).length + '</strong>未联系</span>';
+      $('cards').innerHTML = favViewList.map(function(f,i){ return favCardHtml(f, i); }).join('');
+      wireCardActions($('cards'), 'favs');
+      return;
+    }
+
+    var rows = lastRows || [];
+    if(!rows.length){
+      $('toolbar').style.display='none'; $('cards').innerHTML=''; $('table').style.display='none';
+      $('discovery').innerHTML = discoveryBanner();
+      $('empty').style.display='block';
+      $('empty').innerHTML = '<div class="big">🔍</div><div class="t">还没有结果</div><div class="h">默认是发现模式：填好上方关键词，点【开始】。</div>';
+      return;
+    }
+    $('empty').style.display='none';
+    $('toolbar').style.display='flex';
+    $('counts').innerHTML = counts(rows);
+    $('discovery').innerHTML = discoveryBanner();
+    var sorted = sortRows(applyFilter(rows));
+    if(view === 'cards'){
+      $('cards').style.display='grid'; $('table').style.display='none';
+      $('cards').innerHTML = sorted.map(function(r,i){ return cardHtml(r, rows.indexOf(r)); }).join('');
+      wireCardActions($('cards'), 'creators');
+    } else {
+      $('cards').style.display='none'; $('table').style.display='block';
+      var t = tableHtml(sorted);
+      document.querySelector('#tbl thead tr').innerHTML = t.th;
+      document.querySelector('#tbl tbody').innerHTML = t.tb;
+    }
+  }
+
+  // ---- comments loader ----
+  var commentsCache = {}; // username -> commentsByUrl
+  function loadComments(creator, btn){
+    var token = $('token').value.trim();
+    if(!token){ alert('请先填 Apify Token'); return; }
+    var urls = (creator.recent_videos_top || []).map(function(v){ return v.url; }).filter(Boolean);
+    if(!urls.length){ alert('该博主没有可用视频 URL'); return; }
+    btn.disabled = true; var orig = btn.textContent; btn.innerHTML = '<span class="spinner"></span>抓评论…';
+    fetch('/api/comments', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ apifyToken: token, videoUrls: urls, perPost: 20, waitSecs: 240 }) })
+      .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, j:j }; }); })
+      .then(function(x){
+        btn.disabled = false; btn.textContent = orig;
+        if(!x.ok || !x.j.ok){ alert('评论抓取失败：' + (x.j && x.j.error || x.code)); return; }
+        commentsCache[favKey(creator.username)] = x.j.commentsByUrl || {};
+        renderComments(creator);
+      })
+      .catch(function(e){ btn.disabled = false; btn.textContent = orig; alert('网络错误：' + e); });
+  }
+  function renderComments(creator){
+    var host = document.querySelector('.cmt-host[data-host="' + (creator.username||'').replace(/"/g,'') + '"]');
+    if(!host) return;
+    var byUrl = commentsCache[favKey(creator.username)] || {};
+    var vids = creator.recent_videos_top || [];
+    var html = '<div class="comments"><div class="ttl">💬 热门视频 Top 评论</div>';
+    var any = false;
+    vids.forEach(function(v, i){
+      var cs = byUrl[v.url] || [];
+      if(!cs.length) return;
+      any = true;
+      html += '<div class="item"><div class="top"><span class="who">视频#' + (i+1) + ' · ▶ ' + fmt(v.plays) + '</span></div>';
+      cs.slice(0,3).forEach(function(c){
+        html += '<div class="top"><span class="who">@' + esc(c.user||'匿名') + '</span><span class="lk">♥ ' + fmt(c.likes) + '</span></div>';
+        html += '<div>' + esc(c.text) + '</div>';
+      });
+      html += '</div>';
+    });
+    if(!any) html += '<div class="item">（这几条视频没抓到评论）</div>';
+    html += '</div>';
+    host.innerHTML = html;
+  }
+
+  // ---- AI advice (Gemini) ----
+  var aiCache = {};
+  function loadAiAdvice(creator, btn){
+    var key = ($('geminiKey').value || '').trim();
+    if(!key){ try { key = localStorage.getItem('geminiKey') || ''; } catch(e){} }
+    if(!key){ alert('请在 高级 → Gemini API Key 里填入 key（aistudio.google.com/apikey）'); return; }
+    try { localStorage.setItem('geminiKey', key); } catch(e){}
+    var model = ($('geminiModel').value || '').trim() || null;
+    btn.disabled = true; var orig = btn.textContent; btn.innerHTML = '<span class="spinner"></span>评估…';
+    fetch('/api/ai-recommend', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ geminiKey: key, model: model, creator: creator }) })
+      .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, j:j }; }); })
+      .then(function(x){
+        btn.disabled = false; btn.textContent = orig;
+        if(!x.ok || !x.j.ok){ alert('AI 评估失败：' + (x.j && x.j.error || x.code)); return; }
+        aiCache[favKey(creator.username)] = x.j.advice;
+        renderAi(creator);
+      })
+      .catch(function(e){ btn.disabled = false; btn.textContent = orig; alert('网络错误：' + e); });
+  }
+  function renderAi(creator){
+    var host = document.querySelector('.ai-host[data-host="' + (creator.username||'').replace(/"/g,'') + '"]');
+    if(!host) return;
+    var a = aiCache[favKey(creator.username)];
+    if(!a) { host.innerHTML = ''; return; }
+    var verdict = (a.recommend_outreach || 'maybe').toLowerCase();
+    var price = a.suggested_price_usd || {};
+    var tps = a.talking_points || [];
+    var warns = a.warnings || [];
+    var html = '<div class="ai-card"><div class="hd">🤖 AI 建议 <span class="verdict ' + esc(verdict) + '">' + esc(verdict.toUpperCase()) + '</span></div>';
+    if(a.recommend_reason) html += '<div>' + esc(a.recommend_reason) + '</div>';
+    html += '<div class="row">';
+    if(price.post != null) html += '<span class="pill">单帖 ~$' + esc(price.post) + '</span>';
+    if(price.story != null) html += '<span class="pill">Story ~$' + esc(price.story) + '</span>';
+    if(price.video_collab != null) html += '<span class="pill">共创 ~$' + esc(price.video_collab) + '</span>';
+    html += '</div>';
+    if(a.price_reason) html += '<div style="margin-top:6px;font-size:0.78rem;color:var(--muted);">' + esc(a.price_reason) + '</div>';
+    if(tps.length){ html += '<div style="margin-top:8px;font-weight:600;font-size:0.78rem;">外联话题</div><ul>'; tps.forEach(function(t){ html += '<li>' + esc(t) + '</li>'; }); html += '</ul>'; }
+    if(warns.length){ html += '<div style="margin-top:8px;font-weight:600;font-size:0.78rem;color:#ffb4ab;">⚠ 警示</div><ul class="warn">'; warns.forEach(function(t){ html += '<li>' + esc(t) + '</li>'; }); html += '</ul>'; }
+    html += '</div>';
+    host.innerHTML = html;
+  }
+
+  // restore Gemini key
+  try { var gk=localStorage.getItem('geminiKey'); if(gk) $('geminiKey').value=gk; } catch(e){}
+  try { var gm=localStorage.getItem('geminiModel'); if(gm) $('geminiModel').value=gm; } catch(e){}
+  $('geminiKey').addEventListener('change', function(){ try { localStorage.setItem('geminiKey', $('geminiKey').value.trim()); } catch(e){} });
+  $('geminiModel').addEventListener('change', function(){ try { localStorage.setItem('geminiModel', $('geminiModel').value.trim()); } catch(e){} });
+
+  // ---- platform switch ----
+  var currentPlatform = 'tiktok';
+  try { var sp=localStorage.getItem('platform'); if(sp==='instagram'||sp==='tiktok') currentPlatform=sp; } catch(e){}
+  function setPlatform(p){
+    currentPlatform = p;
+    try { localStorage.setItem('platform', p); } catch(e){}
+    $('platTT').classList.toggle('active', p==='tiktok');
+    $('platIG').classList.toggle('active', p==='instagram');
+    var ph = $('handles');
+    if(p==='instagram'){
+      ph.placeholder='留空 → 关键词搜 IG hashtag\n或一行一个 IG 用户名：natgeo\nzuck';
+      $('keywords').placeholder='fitness, gym, weightloss';
+    } else {
+      ph.placeholder='留空 → 自动发现模式\n或一行一个：apifytech\ntiktok';
+      $('keywords').placeholder='fitness, gym, weight loss';
+    }
+  }
+  $('platTT').onclick = function(){ setPlatform('tiktok'); };
+  $('platIG').onclick = function(){ setPlatform('instagram'); };
+  setPlatform(currentPlatform);
+
+  // ---- email template ----
+  var DEFAULT_TMPL_SUBJECT = 'Hi {{name}}, paid collab from Jovida';
+  var DEFAULT_TMPL_BODY = [
+    '<p>Hi {{name}},</p>',
+    '<p>Saw your <a href="{{profile_url}}">@{{username}}</a> content on TikTok ({{followers}} followers, {{avg}} avg views) — really impressive.</p>',
+    '<p>We\'re <strong>Jovida</strong>, launching a personal coaching app, and we\'d love to explore a paid collaboration with you: sponsored post, affiliate, or co-created video.</p>',
+    '<p>If you\'re open to it, just reply with your rate card and a recent availability window, and I\'ll send over the brief.</p>',
+    '<p>Best,<br/>The Jovida Team</p>'
+  ].join('\n');
+  function getTemplate(){ var s=null,b=null; try { s=localStorage.getItem('mailTmplSubject'); } catch(e){} try { b=localStorage.getItem('mailTmplBody'); } catch(e){} return { subject: s || DEFAULT_TMPL_SUBJECT, body: b || DEFAULT_TMPL_BODY }; }
+  function saveTemplate(s,b){ try { localStorage.setItem('mailTmplSubject', s); localStorage.setItem('mailTmplBody', b); return true; } catch(e){ return false; } }
+  function resetTemplate(){ try { localStorage.removeItem('mailTmplSubject'); localStorage.removeItem('mailTmplBody'); } catch(e){} }
+  function applyVars(text, r){
+    var nick = r.nickname || r.username || '';
+    var vars = { name: nick, username: r.username || '', handle: '@' + (r.username || ''), followers: fmt(r.followers||0), avg: fmt(r.avg_play_in_window||0), profile_url: r.profile_url || '' };
+    return String(text || '').replace(/\{\{(\w+)\}\}/g, function(m, k){ return Object.prototype.hasOwnProperty.call(vars, k) ? vars[k] : m; });
+  }
+  function buildEmailDraft(r){ var primary = (r.contacts && r.contacts.emails && r.contacts.emails[0]) || ''; var t = getTemplate(); return { to: primary, subject: applyVars(t.subject, r), body: applyVars(t.body, r) }; }
+
+  // ---- template editor modal ----
+  function openTmplModal(){
+    var t = getTemplate();
+    $('tmplSubject').value = t.subject; $('tmplBody').value = t.body;
+    var custom = false; try { custom = !!(localStorage.getItem('mailTmplSubject') || localStorage.getItem('mailTmplBody')); } catch(e){}
+    $('tmplSavedHint').textContent = custom ? '当前为：自定义模板' : '当前为：内置默认';
+    setTmplStatus(''); $('tmplModal').classList.add('open');
+    setTimeout(function(){ $('tmplSubject').focus(); }, 50);
+  }
+  function closeTmplModal(){ $('tmplModal').classList.remove('open'); }
+  function setTmplStatus(text, kind){ var el=$('tmplStatus'); if(!text){ el.classList.remove('show','info','ok','err'); el.textContent=''; return; } el.className='modal-status show '+(kind||'info'); el.textContent=text; }
+  $('tmplBtn').onclick = openTmplModal;
+  $('tmplClose').onclick = closeTmplModal;
+  $('tmplSave').onclick = function(){
+    var s=$('tmplSubject').value, b=$('tmplBody').value;
+    if(!s.trim() || !b.trim()){ setTmplStatus('主题和正文都不能为空', 'err'); return; }
+    if(saveTemplate(s,b)){ setTmplStatus('✓ 已保存为默认。后续每次起草邮件会用这个模板。', 'ok'); $('tmplSavedHint').textContent='当前为：自定义模板'; }
+    else { setTmplStatus('保存失败：localStorage 不可用', 'err'); }
+  };
+  $('tmplReset').onclick = function(){ resetTemplate(); $('tmplSubject').value=DEFAULT_TMPL_SUBJECT; $('tmplBody').value=DEFAULT_TMPL_BODY; $('tmplSavedHint').textContent='当前为：内置默认'; setTmplStatus('已恢复内置默认模板（未保存前可继续编辑）', 'info'); };
+  $('tmplModal').addEventListener('click', function(e){ if(e.target === $('tmplModal')) closeTmplModal(); });
+
+  // ---- email composer ----
+  function setMailStatus(text, kind){ var el=$('mailStatus'); if(!text){ el.classList.remove('show','info','ok','err'); el.innerHTML=''; return; } el.className='modal-status show '+(kind||'info'); el.textContent=text; }
+  function setMailStatusHtml(html, kind){ var el=$('mailStatus'); el.className='modal-status show '+(kind||'info'); el.innerHTML=html; }
+  function isTokenDeadMessage(err){ var s = String(err||'').toLowerCase(); return s.indexOf('invalid_grant')>=0 || s.indexOf('expired or revoked')>=0 || s.indexOf('token refresh failed')>=0 || s.indexOf('auth_required')>=0; }
+  function markTokenDead(){ mailToolStatus.authenticated=false; var chip=$('acctChip'),txt=$('acctText'); chip.className='acct-chip warn'; chip.title='Gmail token 已失效，需到邮件工具重新授权'; txt.textContent='📧 token 过期，需重登'; updateMailButtons(); }
+
+  function openMailModal(creatorOrIdx){
+    var r = (typeof creatorOrIdx === 'number') ? lastRows[creatorOrIdx] : creatorOrIdx;
+    if(!r) return;
+    openCreator = r;
+    var d = buildEmailDraft(r);
+    $('mailTo').value = d.to;
+    $('mailSubject').value = d.subject;
+    $('mailBody').value = d.body;
+    $('mailPlain').checked = false;
+    $('mailPersonalize').checked = true;
+    var av = $('mailAvatar');
+    if(r.avatar){ av.src = r.avatar; av.style.display='block'; } else { av.removeAttribute('src'); av.style.display='none'; }
+    $('mailModalTitle').textContent = '起草邮件给 ' + (r.nickname || r.username || '');
+    $('mailRecipientHint').textContent = '@' + (r.username||'') + (r.followers ? ' · ' + fmt(r.followers) + ' 粉丝' : '');
+    $('mailFromText').textContent = mailToolStatus.configured
+      ? '发件人：' + mailToolStatus.sender + '（SMTP 直发）'
+      : '发件人：（请在 高级 里配置）';
+    setMailStatus('');
+    $('mailSend').disabled = !mailToolStatus.configured;
+    $('mailModal').classList.add('open');
+    setTimeout(function(){ $('mailTo').focus(); }, 50);
+  }
+  function closeMailModal(){ $('mailModal').classList.remove('open'); openCreator = null; }
+  function sendMail(){
+    if(!openCreator) return;
+    var to = $('mailTo').value.trim();
+    if(!to){ setMailStatus('请填写收件人', 'err'); return; }
+    var sender = ($('senderEmail').value||'').trim();
+    var pw = ($('appPassword').value||'').trim();
+    if(!sender || !pw){ setMailStatus('请先在 高级 里填发件 Gmail + App Password', 'err'); return; }
+    var subject = $('mailSubject').value;
+    var body = $('mailBody').value;
+    if($('mailPersonalize').checked){ subject = applyVars(subject, openCreator); body = applyVars(body, openCreator); }
+    setMailStatus('发送中…', 'info');
+    $('mailSend').disabled = true;
+    fetch('/api/send-mail', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          senderEmail: sender,
+          appPassword: pw,
+          senderName: ($('senderName').value||'').trim(),
+          recipients: to,
+          subject: subject,
+          body: body,
+          plainText: $('mailPlain').checked
+        })
+      })
+      .then(function(r){ return r.json().then(function(j){ return { code:r.status, j:j }; }); })
+      .then(function(x){
+        $('mailSend').disabled = false;
+        if(x.code !== 200 || !x.j.ok){
+          var err = x.j && x.j.error || ('HTTP ' + x.code);
+          setMailStatus('发送失败：' + err, 'err');
+          return;
+        }
+        var results = x.j.results || [];
+        var ok = results.length && results.every(function(r){ return r.success; });
+        if(ok){
+          var ids = results.map(function(r){ return r.message_id; }).filter(Boolean);
+          if(openCreator && openCreator.username){
+            if(!getFav(openCreator.username)) addFav(openCreator);
+            markContacted(openCreator.username);
+          }
+          setMailStatus('✓ 已发送，已自动收藏并标为"已联系"（' + (ids[0]||'-') + '）', 'ok');
+          setTimeout(function(){ closeMailModal(); render(); }, 1400);
+        } else {
+          var msg = (results[0] && results[0].error) || '未知错误';
+          setMailStatus('部分或全部失败：' + msg, 'err');
+        }
+      })
+      .catch(function(e){ $('mailSend').disabled = false; setMailStatus('网络错误：' + String(e), 'err'); });
+  }
+  $('mailClose').onclick = closeMailModal;
+  $('mailCancel').onclick = closeMailModal;
+  $('mailSend').onclick = sendMail;
+  $('mailModal').addEventListener('click', function(e){ if(e.target === $('mailModal')) closeMailModal(); });
+  document.addEventListener('keydown', function(e){
+    if(e.key !== 'Escape') return;
+    if($('mailModal').classList.contains('open')) { closeMailModal(); return; }
+    if($('tmplModal').classList.contains('open')) { closeTmplModal(); return; }
+  });
+
+  // ---- toolbar ----
+  function setView(v){ view=v; $('viewCards').classList.toggle('active', v==='cards'); $('viewTable').classList.toggle('active', v==='table'); $('viewFavs').classList.toggle('active', v==='favs'); render(); }
+  $('run').onclick = load;
+  $('onlyPass').onchange = render;
+  $('onlyEmail').onchange = render;
+  $('sortBy').onchange = render;
+  $('viewCards').onclick = function(){ setView('cards'); };
+  $('viewTable').onclick = function(){ setView('table'); };
+  $('viewFavs').onclick = function(){ setView('favs'); };
+  $('senderEmail').addEventListener('change', persist);
+  $('appPassword').addEventListener('change', persist);
+
+  $('csv').onclick = function(){
+    if(!lastRows || !lastRows.length) return;
+    var fields = ['username','nickname','verified','region','followers','total_hearts','total_videos_lifetime','posts_in_window','avg_play_in_window','required_avg_for_rule','pass_min_followers','pass_view_rule','pass_all','keyword_matched','last_post_at','profile_url','avatar','bio'];
+    var lines = [fields.join(',')];
+    lastRows.forEach(function(r){ lines.push(fields.map(function(c){ var v=r[c]; if(v==null) return ''; var s=String(v); if(/[",\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"'; return s; }).join(',')); });
+    var blob = new Blob(['﻿'+lines.join('\n')], { type:'text/csv;charset=utf-8' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'creators.csv'; a.click(); URL.revokeObjectURL(a.href);
+  };
+
+  $('empty').style.display='block';
+  updateFavCount();
+  refreshMailStatus();
+})();
+</script>
+</body>
+</html>
