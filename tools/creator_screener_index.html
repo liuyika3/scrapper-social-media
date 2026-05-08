@@ -123,6 +123,17 @@
     .videos .vid img { width:100%; height:100%; object-fit:cover; display:block; }
     .videos .vid .plays { position:absolute; left:4px; bottom:4px; font-size:0.66rem; color:#fff; background:rgba(0,0,0,0.65); padding:1px 6px; border-radius:4px; font-variant-numeric:tabular-nums; backdrop-filter:blur(4px); }
     .videos .vid .ph { width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:#3d4a66; font-size:0.7rem; }
+    .creator-comments { padding:6px 16px 8px; }
+    .creator-comments .ttl { font-size:0.72rem; color:var(--muted); margin-bottom:6px; letter-spacing:0.04em; text-transform:uppercase; }
+    .cc-item { display:flex; gap:8px; padding:7px 0; border-top:1px solid var(--border); }
+    .cc-item:first-of-type { border-top:none; padding-top:2px; }
+    .cc-avatar { width:26px; height:26px; border-radius:50%; flex-shrink:0; background:var(--accent-grad); object-fit:cover; border:1px solid rgba(255,255,255,0.06); }
+    .cc-avatar-fallback { display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.78rem; font-weight:700; }
+    .cc-body { flex:1; min-width:0; }
+    .cc-meta { display:flex; gap:8px; align-items:center; font-size:0.7rem; color:var(--muted); margin-bottom:2px; }
+    .cc-meta .nick { color:var(--text2); font-weight:500; }
+    .cc-meta .lk { color:#ffd28a; font-variant-numeric:tabular-nums; }
+    .cc-text { font-size:0.78rem; color:var(--text2); line-height:1.45; word-break:break-word; }
     .contacts { padding:4px 16px 8px; font-size:0.78rem; color:var(--muted); display:flex; flex-wrap:wrap; gap:6px; }
     .contacts .c { background:var(--panel2); padding:3px 9px; border-radius:6px; border:1px solid rgba(255,255,255,0.04); }
     .actions { padding:4px 16px 12px; display:flex; gap:8px; }
@@ -411,6 +422,45 @@
     </div>
   </div>
 
+  <!-- Gmail OAuth wizard modal -->
+  <div class="backdrop" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+    <div class="modal" role="document">
+      <div class="modal-head">
+        <div class="ttl" style="flex:1">
+          <div class="t1" id="authModalTitle">🔑 用 Gmail OAuth 授权</div>
+          <div class="t2">按 <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a> 配置好的 OAuth Client，本机直接走 Gmail API 发邮件，不依赖外部进程</div>
+        </div>
+        <button type="button" class="close" id="authClose" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-status" id="authStatus" role="status" aria-live="polite"></div>
+        <div style="background:rgba(61,139,253,0.08);border:1px solid rgba(61,139,253,0.25);padding:11px 14px;border-radius:10px;font-size:0.82rem;color:var(--text2);line-height:1.6;margin-bottom:14px;">
+          <strong style="color:var(--text);">前提（已配置过 mail-tool-gmail 可跳过）：</strong>
+          <ol style="margin:6px 0 0 18px;padding:0;">
+            <li>Google Cloud → 启用 <code>Gmail API</code></li>
+            <li>OAuth consent screen → 把发件邮箱加进 <code>Test users</code></li>
+            <li>Credentials → OAuth client ID（Web app）→ <strong>Authorized redirect URIs 加这两条</strong>：<br/>
+              <code id="authRedirectHint" style="display:block;margin-top:4px;font-size:0.78rem;">http://127.0.0.1:5180/oauth/callback</code>
+              <code style="display:block;font-size:0.78rem;">http://localhost:5180/oauth/callback</code>
+            </li>
+          </ol>
+        </div>
+        <label for="authEmail">发件 Gmail 地址（必须在 Test users 里）</label>
+        <input id="authEmail" type="email" placeholder="jovidasmith@gmail.com" />
+        <label for="authClientId" style="margin-top:12px">OAuth Client ID</label>
+        <input id="authClientId" placeholder="xxxxx.apps.googleusercontent.com" autocomplete="off" />
+        <label for="authClientSecret" style="margin-top:12px">OAuth Client Secret</label>
+        <input id="authClientSecret" type="password" placeholder="GOCSPX-..." autocomplete="off" />
+        <p class="hint">凭据写到本机 <code>.google-accounts.json</code>（已加 .gitignore），不会进 commit。<br/>已经在 mail-tool-gmail 用过同一个 Client？直接复用即可，只需在 Cloud Console 给它加 5180 端口的 redirect URI。</p>
+      </div>
+      <div class="modal-foot">
+        <span class="acct" id="authState">未授权</span>
+        <button type="button" class="ghost" id="authLogout" style="display:none">登出</button>
+        <button type="button" id="authStart">去 Google 授权 →</button>
+      </div>
+    </div>
+  </div>
+
   <!-- AI prompt editor modal -->
   <div class="backdrop" id="aiPromptModal" role="dialog" aria-modal="true" aria-labelledby="aiPromptModalTitle">
     <div class="modal" role="document">
@@ -478,17 +528,61 @@
   var mailToolStatus = { configured:false, sender:null };
   var openCreator = null;
 
-  // ---- favorites (persisted in localStorage) ----
+  // ---- favorites (server-side persistence in .favorites.json; localStorage as cache) ----
   var FAV_KEY = 'favCreators_v1';
   var favs = {};
-  function loadFavs(){ try { var raw = localStorage.getItem(FAV_KEY); if(raw){ favs = JSON.parse(raw) || {}; } } catch(e){ favs = {}; } if(typeof favs !== 'object' || !favs) favs = {}; }
-  function saveFavs(){ try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch(e){} updateFavCount(); }
   function favKey(u){ return String(u||'').toLowerCase(); }
   function getFav(u){ return favs[favKey(u)] || null; }
-  function addFav(creator){ if(!creator || !creator.username) return; var k = favKey(creator.username); if(favs[k]) return; favs[k] = { creator: creator, status:'uncontacted', addedAt: Date.now(), lastContactedAt: null }; saveFavs(); }
-  function removeFav(u){ var k = favKey(u); if(favs[k]){ delete favs[k]; saveFavs(); } }
-  function setFavStatus(u, status){ var k = favKey(u); var f = favs[k]; if(!f) return; f.status = status; if(status === 'contacted') f.lastContactedAt = Date.now(); saveFavs(); }
-  function markContacted(u){ var k = favKey(u); if(!favs[k] && openCreator){ addFav(openCreator); } setFavStatus(u, 'contacted'); }
+  function saveLocalCache(){ try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch(e){} updateFavCount(); }
+
+  function loadFavsFromServer(){
+    // try server first; fall back to local cache if server unreachable
+    return fetch('/api/favorites').then(function(r){return r.json();}).then(function(j){
+      if(j && j.ok){ favs = j.favorites || {}; saveLocalCache(); return favs; }
+      throw new Error(j && j.error || 'load failed');
+    }).catch(function(){
+      try { var raw = localStorage.getItem(FAV_KEY); if(raw) favs = JSON.parse(raw) || {}; } catch(e){ favs = {}; }
+      if(!favs || typeof favs !== 'object') favs = {};
+      updateFavCount();
+    });
+  }
+  function addFav(creator){
+    if(!creator || !creator.username) return;
+    var k = favKey(creator.username);
+    if(favs[k]) return; // already there
+    favs[k] = { creator: creator, status:'uncontacted', addedAt: Date.now(), lastContactedAt: null };
+    saveLocalCache();
+    fetch('/api/favorites/upsert', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ creator: creator }) })
+      .then(function(r){return r.json();}).then(function(j){ if(j && j.ok && j.favorite){ favs[k] = j.favorite; saveLocalCache(); } });
+  }
+  function removeFav(u){
+    var k = favKey(u);
+    if(!favs[k]) return;
+    delete favs[k]; saveLocalCache();
+    fetch('/api/favorites/remove', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username: u }) }).catch(function(){});
+  }
+  function setFavStatus(u, status){
+    var k = favKey(u); var f = favs[k]; if(!f) return;
+    f.status = status; if(status === 'contacted') f.lastContactedAt = Date.now();
+    saveLocalCache();
+    fetch('/api/favorites/status', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username: u, status: status }) })
+      .then(function(r){return r.json();}).then(function(j){ if(j && j.ok && j.favorite){ favs[k] = j.favorite; saveLocalCache(); } });
+  }
+  function markContacted(u){
+    var k = favKey(u);
+    if(!favs[k] && openCreator){ addFav(openCreator); }
+    setFavStatus(u, 'contacted');
+  }
+  function saveAiToFav(creator, advice){
+    if(!creator || !creator.username) return;
+    var k = favKey(creator.username);
+    if(!favs[k]){ favs[k] = { creator: creator, status:'uncontacted', addedAt: Date.now(), lastContactedAt: null }; }
+    favs[k].aiAdvice = advice;
+    favs[k].aiSavedAt = Date.now();
+    saveLocalCache();
+    fetch('/api/favorites/save-ai', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username: creator.username, creator: creator, advice: advice }) })
+      .then(function(r){return r.json();}).then(function(j){ if(j && j.ok && j.favorite){ favs[k] = j.favorite; saveLocalCache(); } });
+  }
   function updateFavCount(){
     var n = Object.keys(favs).length;
     var el = document.getElementById('favCount'); if(el) el.textContent = n ? '(' + n + ')' : '';
@@ -500,7 +594,7 @@
     }
   }
   function fmtDateTime(ms){ if(!ms) return ''; try { var d = new Date(ms); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); } catch(e){ return ''; } }
-  loadFavs();
+  loadFavsFromServer();
 
   function $(id){ return document.getElementById(id); }
   function esc(s){ if(s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -524,43 +618,99 @@
     try { localStorage.setItem('senderName', $('senderName').value.trim()); } catch(e){}
   }
 
-  // ---- mail status (now: just check if SMTP creds are filled) ----
+  // ---- mail status: Gmail OAuth via backend /api/auth/status ----
   function refreshMailStatus(){
-    var sender = ($('senderEmail').value || '').trim();
-    var pw = ($('appPassword').value || '').trim();
     var chip = $('acctChip'), txt = $('acctText');
-    if(sender && pw){
-      mailToolStatus.configured = true;
-      mailToolStatus.sender = sender;
-      chip.className='acct-chip ok';
-      chip.title='SMTP 已配置，发件人：' + sender + '。直发不依赖外部进程。';
-      txt.textContent='📧 ' + sender;
-    } else {
+    fetch('/api/auth/status').then(function(r){ return r.json(); }).then(function(j){
+      if(j.authenticated && j.activeAccount){
+        mailToolStatus.configured = true;
+        mailToolStatus.sender = j.activeAccount;
+        chip.className='acct-chip ok';
+        chip.title='Gmail OAuth 已授权，发件人：' + j.activeAccount;
+        txt.textContent='📧 ' + j.activeAccount;
+      } else if(j.activeAccount){
+        mailToolStatus.configured = false;
+        mailToolStatus.sender = j.activeAccount;
+        chip.className='acct-chip warn';
+        chip.title='Gmail token 已失效，需重新授权';
+        txt.textContent='📧 token 过期，需重登';
+      } else {
+        mailToolStatus.configured = false;
+        mailToolStatus.sender = null;
+        chip.className='acct-chip warn';
+        chip.title='点 🔑 按钮走 Gmail OAuth';
+        txt.textContent='📧 未授权 Gmail';
+      }
+      updateMailButtons(); updateLoginBtn();
+    }).catch(function(){
       mailToolStatus.configured = false;
-      mailToolStatus.sender = null;
-      chip.className='acct-chip warn';
-      chip.title='请在 高级 里填发件 Gmail + App Password';
-      txt.textContent='📧 未配置发件邮箱';
-    }
-    updateMailButtons();
-    updateLoginBtn();
+      chip.className='acct-chip err'; txt.textContent='📧 后端无响应';
+      updateMailButtons(); updateLoginBtn();
+    });
   }
   function updateLoginBtn(){
     var b = $('loginBtn'); if(!b) return;
     b.style.display = mailToolStatus.configured ? 'none' : 'inline-flex';
-    b.textContent = '🔧 配置发件';
-    b.title = '展开高级面板填发件 Gmail + App Password';
+    b.textContent = '🔑 用 Gmail 授权';
+    b.title = '走 OAuth 授权（按 GMAIL配置全流程.md 来）';
   }
-  function openConfigHelp(){
-    // Just expand the advanced details and focus sender field
-    var det = document.querySelector('details');
-    if(det) det.open = true;
-    setTimeout(function(){ var el=$('senderEmail'); if(el){ el.focus(); el.scrollIntoView({behavior:'smooth', block:'center'}); } }, 50);
+  // ---- OAuth wizard ----
+  function openAuthModal(){
+    fetch('/api/auth/status').then(function(r){return r.json();}).then(function(j){
+      if(j.activeAccount) $('authEmail').value = j.activeAccount;
+      $('authState').textContent = j.authenticated
+        ? ('✓ 已授权 ' + j.activeAccount)
+        : (j.activeAccount ? ('未授权（已配置 Client，' + j.activeAccount + ')') : '未授权');
+      $('authLogout').style.display = j.authenticated ? 'inline-flex' : 'none';
+    }).catch(function(){});
+    setAuthStatus('');
+    var redirHint = window.location.protocol + '//' + window.location.host + '/oauth/callback';
+    $('authRedirectHint').textContent = redirHint + '   ← 必须加进 Cloud Console';
+    $('authModal').classList.add('open');
+    setTimeout(function(){ $('authEmail').focus(); }, 50);
   }
-  $('loginBtn').onclick = openConfigHelp;
-  $('senderEmail').addEventListener('input', refreshMailStatus);
-  $('appPassword').addEventListener('input', refreshMailStatus);
-  $('senderName').addEventListener('change', function(){ try { localStorage.setItem('senderName', $('senderName').value.trim()); } catch(e){} });
+  function closeAuthModal(){ $('authModal').classList.remove('open'); }
+  function setAuthStatus(text, kind){ var el=$('authStatus'); if(!text){ el.classList.remove('show','info','ok','err'); el.innerHTML=''; return; } el.className='modal-status show '+(kind||'info'); el.innerHTML=text; }
+
+  $('loginBtn').onclick = openAuthModal;
+  $('authClose').onclick = closeAuthModal;
+  $('authModal').addEventListener('click', function(e){ if(e.target === $('authModal')) closeAuthModal(); });
+  $('authStart').onclick = function(){
+    var email = $('authEmail').value.trim();
+    var cid = $('authClientId').value.trim();
+    var sec = $('authClientSecret').value.trim();
+    if(!email || !cid || !sec){ setAuthStatus('邮箱 / Client ID / Client Secret 都不能空', 'err'); return; }
+    setAuthStatus('保存配置 + 准备 OAuth URL…', 'info');
+    $('authStart').disabled = true;
+    fetch('/api/auth/config', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email: email, clientId: cid, clientSecret: sec }) })
+      .then(function(r){ return r.json().then(function(j){ return {code:r.status, j:j}; }); })
+      .then(function(x){
+        $('authStart').disabled = false;
+        if(x.code !== 200 || !x.j.ok){ setAuthStatus('失败：' + (x.j && x.j.error || x.code), 'err'); return; }
+        var popup = window.open(x.j.authUrl, 'gauth', 'width=520,height=720,left=200,top=120');
+        if(!popup){ setAuthStatus('浏览器拦了 popup。<br/>直接打开：<a href="' + escAttr(x.j.authUrl) + '" target="_blank" style="color:#fff;text-decoration:underline">这里</a>', 'err'); return; }
+        setAuthStatus('在弹出窗口里完成 Google 授权…（成功后窗口自动关闭）', 'info');
+        var t0 = Date.now();
+        var pid = setInterval(function(){
+          fetch('/api/auth/status').then(function(r){return r.json();}).then(function(j){
+            if(j.authenticated){
+              clearInterval(pid);
+              try { if(popup && !popup.closed) popup.close(); } catch(e){}
+              setAuthStatus('✓ 授权成功，发件人：' + j.activeAccount, 'ok');
+              refreshMailStatus();
+              setTimeout(closeAuthModal, 1200);
+            }
+          }).catch(function(){});
+          if(Date.now() - t0 > 180000){ clearInterval(pid); setAuthStatus('登录超时（3分钟），请重试', 'err'); }
+        }, 1500);
+      })
+      .catch(function(e){ $('authStart').disabled = false; setAuthStatus('网络错误：' + e, 'err'); });
+  };
+  $('authLogout').onclick = function(){
+    if(!confirm('清掉本机 Gmail token？下次发邮件需要重新授权。')) return;
+    fetch('/api/auth/logout', {method:'POST'}).then(function(){ refreshMailStatus(); openAuthModal(); });
+  };
   function updateMailButtons(){
     var btns = document.querySelectorAll('.mail-btn');
     btns.forEach(function(b){
@@ -699,6 +849,26 @@
     (c.youtube||[]).forEach(function(h){ parts.push('<span class="c">YT '+esc(h)+'</span>'); });
     return parts.length ? '<div class="contacts">'+parts.join('')+'</div>' : '';
   }
+  function commentsBlock(comments){
+    if(!comments || !comments.length) return '';
+    var html = '<div class="creator-comments"><div class="ttl">💬 Top 评论</div>';
+    comments.slice(0,3).forEach(function(c){
+      var av = c.user_avatar
+        ? '<img class="cc-avatar" loading="lazy" referrerpolicy="no-referrer" src="' + escAttr(c.user_avatar) + '" onerror="this.outerHTML=\'<div class=\\\'cc-avatar cc-avatar-fallback\\\'>'+esc(initial(c.user_nick||c.user))+'</div>\'" alt="" />'
+        : '<div class="cc-avatar cc-avatar-fallback">' + esc(initial(c.user_nick||c.user||'?')) + '</div>';
+      var who = c.user_nick || c.user || '匿名';
+      html += '<div class="cc-item">' + av
+        + '<div class="cc-body">'
+        +   '<div class="cc-meta"><span class="nick">' + esc(who) + '</span>'
+        +     (c.user ? '<span>@' + esc(c.user) + '</span>' : '')
+        +     '<span class="lk">♥ ' + fmt(c.likes) + '</span>'
+        +   '</div>'
+        +   '<div class="cc-text">' + esc(c.text) + '</div>'
+        + '</div></div>';
+    });
+    html += '</div>';
+    return html;
+  }
 
   function actionsRow(idx, hasEmail, isFav, hasVids){
     return '<div class="actions">'
@@ -751,6 +921,7 @@
       + '<div class="stats">' + stats + '</div>'
       + videoBlock(topVids, r.top_video_mp4)
       + '<div class="ai-host" data-host="' + escAttr(r.username) + '"></div>'
+      + commentsBlock(r.top_comments)
       + '<div class="cmt-host" data-host="' + escAttr(r.username) + '"></div>'
       + contactsRow(r.contacts)
       + actionsRow(idx, hasEmail, isFav, topVids.length > 0)
@@ -800,6 +971,7 @@
       + '<div class="stats">' + stats + '</div>'
       + videoBlock(topVids, r.top_video_mp4)
       + '<div class="ai-host" data-host="' + escAttr(r.username) + '"></div>'
+      + commentsBlock(r.top_comments)
       + '<div class="cmt-host" data-host="' + escAttr(r.username) + '"></div>'
       + contactsRow(r.contacts)
       + actions
@@ -961,12 +1133,16 @@
     host.innerHTML = html;
   }
 
-  // ---- AI advice (Gemini) — persisted to localStorage ----
-  var AI_CACHE_KEY = 'aiAdvice_v2';
-  var aiCache = {};
-  try { var raw = localStorage.getItem(AI_CACHE_KEY); if(raw) aiCache = JSON.parse(raw) || {}; } catch(e){ aiCache = {}; }
-  if(!aiCache || typeof aiCache !== 'object') aiCache = {};
-  function saveAiCache(){ try { localStorage.setItem(AI_CACHE_KEY, JSON.stringify(aiCache)); } catch(e){} }
+  // ---- AI advice (Gemini) — stored on backend as part of favorites ----
+  // aiCache is now a derived view over favs; reading is `favs[key].aiAdvice`
+  var aiCache = new Proxy({}, {
+    get: function(target, prop){
+      var f = favs[prop];
+      if(f && f.aiAdvice) return { advice: f.aiAdvice, savedAt: f.aiSavedAt, model: null };
+      return undefined;
+    }
+  });
+  function saveAiCache(){ /* no-op: backend save happens in saveAiToFav */ }
 
   var DEFAULT_AI_PROMPT_TEMPLATE = '使用后端默认'; // sentinel; real default lives server-side
 
@@ -990,8 +1166,7 @@
       .then(function(x){
         btn.disabled = false; btn.innerHTML = orig;
         if(!x.ok || !x.j.ok){ alert('AI 评估失败：' + (x.j && x.j.error || x.code)); return; }
-        aiCache[favKey(creator.username)] = { advice: x.j.advice, savedAt: Date.now(), model: model };
-        saveAiCache();
+        saveAiToFav(creator, x.j.advice);
         renderAi(creator);
       })
       .catch(function(e){ btn.disabled = false; btn.innerHTML = orig; alert('网络错误：' + e); });
@@ -1202,9 +1377,7 @@
     if(!openCreator) return;
     var to = $('mailTo').value.trim();
     if(!to){ setMailStatus('请填写收件人', 'err'); return; }
-    var sender = ($('senderEmail').value||'').trim();
-    var pw = ($('appPassword').value||'').trim();
-    if(!sender || !pw){ setMailStatus('请先在 高级 里填发件 Gmail + App Password', 'err'); return; }
+    if(!mailToolStatus.configured){ setMailStatus('请先点顶部 🔑 用 Gmail 授权 完成 OAuth', 'err'); return; }
     var subject = $('mailSubject').value;
     var body = $('mailBody').value;
     if($('mailPersonalize').checked){ subject = applyVars(subject, openCreator); body = applyVars(body, openCreator); }
@@ -1212,9 +1385,7 @@
     $('mailSend').disabled = true;
     fetch('/api/send-mail', { method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
-          senderEmail: sender,
-          appPassword: pw,
-          senderName: ($('senderName').value||'').trim(),
+          senderName: (function(){ var el=$('senderName'); return el ? el.value.trim() : ''; })(),
           recipients: to,
           subject: subject,
           body: body,
@@ -1270,30 +1441,60 @@
   $('appPassword').addEventListener('change', persist);
 
   $('csv').onclick = function(){
-    // Export the favorites list (the curated set) — falls back to current screening rows if no favs
     buildFavList();
     var rows = favViewList.length
       ? favViewList.map(function(f){
           var c = f.creator || {};
-          return Object.assign({}, c, {
-            fav_status: f.status || 'uncontacted',
-            fav_added_at: f.addedAt ? fmtDateTime(f.addedAt) : '',
-            fav_last_contacted_at: f.lastContactedAt ? fmtDateTime(f.lastContactedAt) : '',
-            ai_advice_json: (function(){ var a=aiCache[favKey(c.username)]; return a ? JSON.stringify(a.advice) : ''; })()
-          });
+          var ai = f.aiAdvice || (aiCache[favKey(c.username)] && aiCache[favKey(c.username)].advice);
+          return {
+            '平台':              c.platform || '',
+            '用户名':            c.username || '',
+            '昵称':              c.nickname || '',
+            '认证':              c.verified ? '是' : '',
+            '地区':              c.region || '',
+            '粉丝数':            c.followers != null ? c.followers : '',
+            '总点赞':            c.total_hearts != null ? c.total_hearts : '',
+            '历史视频数':         c.total_videos_lifetime != null ? c.total_videos_lifetime : '',
+            '窗口内发帖数':       c.posts_in_window != null ? c.posts_in_window : '',
+            '窗口内均播':         c.avg_play_in_window != null ? c.avg_play_in_window : '',
+            '过线均播阈值':       c.required_avg_for_rule != null ? c.required_avg_for_rule : '',
+            '过粉丝门槛':         c.pass_min_followers ? '是' : '否',
+            '过均播门槛':         c.pass_view_rule ? '是' : '否',
+            '完全合格':           c.pass_all ? '是' : '否',
+            '关键词命中':         c.keyword_matched == null ? '' : (c.keyword_matched ? '是' : '否'),
+            '最近发布':           c.last_post_at || '',
+            '主页链接':           c.profile_url || '',
+            '头像':              c.avatar || '',
+            '简介':              c.bio || '',
+            '邮箱(从bio)':        ((c.contacts && c.contacts.emails) || []).join('; '),
+            'IG(从bio)':          ((c.contacts && c.contacts.instagram) || []).join('; '),
+            'YT(从bio)':          ((c.contacts && c.contacts.youtube) || []).join('; '),
+            '收藏状态':           f.status === 'contacted' ? '已联系' : '未联系',
+            '加入收藏时间':       f.addedAt ? fmtDateTime(f.addedAt) : '',
+            '上次联系时间':       f.lastContactedAt ? fmtDateTime(f.lastContactedAt) : '',
+            'AI建议':            ai ? (ai.verdict || ai.recommend_outreach || '') : '',
+            'AI核心理由':         ai ? (ai.verdict_reason || ai.recommend_reason || '') : '',
+            'AI报价_单帖':        ai && ai.suggested_price_usd ? (ai.suggested_price_usd.single_post || ai.suggested_price_usd.post || '') : '',
+            'AI报价_Story':      ai && ai.suggested_price_usd ? (ai.suggested_price_usd.story_or_pin || ai.suggested_price_usd.story || '') : '',
+            'AI报价_共创视频':    ai && ai.suggested_price_usd ? (ai.suggested_price_usd.co_created_video || ai.suggested_price_usd.video_collab || '') : '',
+            'AI受众洞察':         ai ? (ai.audience_insight || '') : '',
+            'AI内容洞察':         ai ? (ai.content_insight || '') : '',
+            'AI互动质量':         ai ? (ai.engagement_quality || '') : '',
+            'AI品牌契合':         ai ? (ai.fit_with_jovida || '') : '',
+            'AI外联话题':         ai && ai.talking_points ? ai.talking_points.join(' | ') : '',
+            'AI警示':            ai && ai.warnings ? ai.warnings.join(' | ') : ''
+          };
         })
-      : (lastRows||[]).slice();
-    if(!rows.length){ alert('收藏目录为空，且当前没有筛选结果可导出'); return; }
-    var fields = ['platform','username','nickname','verified','region','followers','total_hearts','total_videos_lifetime',
-                  'posts_in_window','avg_play_in_window','required_avg_for_rule',
-                  'pass_min_followers','pass_view_rule','pass_all','keyword_matched',
-                  'last_post_at','profile_url','avatar','bio',
-                  'fav_status','fav_added_at','fav_last_contacted_at','ai_advice_json'];
-    var lines = [fields.join(',')];
-    rows.forEach(function(r){ lines.push(fields.map(function(c){ var v=r[c]; if(v==null) return ''; var s=String(v); if(/[",\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"'; return s; }).join(',')); });
+      : null;
+    if(!rows){ alert('收藏目录为空，请先收藏几个博主再导出'); return; }
+    if(!rows.length){ alert('收藏目录为空'); return; }
+    var headers = Object.keys(rows[0]);
+    var esc2 = function(v){ if(v==null) return ''; var s=String(v); if(/[",\n]/.test(s)) return '"'+s.replace(/"/g,'""')+'"'; return s; };
+    var lines = [headers.join(',')];
+    rows.forEach(function(r){ lines.push(headers.map(function(h){ return esc2(r[h]); }).join(',')); });
     var blob = new Blob(['﻿'+lines.join('\n')], { type:'text/csv;charset=utf-8' });
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = (favViewList.length ? 'favorites_' : 'creators_') + new Date().toISOString().slice(0,10) + '.csv';
+    a.download = '收藏博主_' + new Date().toISOString().slice(0,10) + '.csv';
     a.click(); URL.revokeObjectURL(a.href);
   };
 

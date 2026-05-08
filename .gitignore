@@ -22,3 +22,6 @@ Thumbs.db
 # Downloaded videos / temp media
 videos/
 mp4_cache/
+.google-accounts.json
+.favorites.json
+*.tmp

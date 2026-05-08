@@ -404,6 +404,13 @@ def fetch_comments(
             "likes": _num(it.get("diggCount") or it.get("likeCount")) or 0,
             "user": user.get("uniqueId") or it.get("uniqueId") or it.get("authorName") or "",
             "user_nick": user.get("nickname") or it.get("nickname") or "",
+            "user_avatar": (
+                user.get("profilePicUrl")
+                or user.get("avatar")
+                or user.get("avatarThumb")
+                or it.get("authorAvatar")
+                or ""
+            ),
             "ts": it.get("createTimeISO") or it.get("createTime") or "",
         })
     out: dict = {}
@@ -764,6 +771,9 @@ def screen_creators(
     download_top_video: bool = False,
     video_actor: Optional[str] = None,
     platform: str = "tiktok",
+    fetch_top_comments: bool = True,
+    comments_actor: Optional[str] = None,
+    comments_per_post: int = 20,
 ) -> dict:
     if not token or not str(token).strip():
         raise ValueError("missing Apify token")
@@ -848,6 +858,36 @@ def screen_creators(
             row["apify_chunk_sec"] = round(elapsed, 2)
             row["actor"] = actor_id
             all_rows.append(row)
+
+    # Auto-fetch top comments per creator (top 3 across their top videos by likes).
+    # TikTok only — IG comments via different actor, skip for now.
+    if fetch_top_comments and all_rows and platform != "instagram":
+        url_to_creator: dict = {}
+        urls_to_fetch: list = []
+        for row in all_rows:
+            for v in (row.get("recent_videos_top") or [])[:3]:
+                u = v.get("url")
+                if u and u not in url_to_creator:
+                    url_to_creator[u] = row.get("username") or ""
+                    urls_to_fetch.append(u)
+        if urls_to_fetch:
+            try:
+                cmts = fetch_comments(
+                    token, urls_to_fetch,
+                    comments_actor=comments_actor, per_post=comments_per_post, wait_secs=240,
+                )
+            except SystemExit:
+                cmts = {}
+            from collections import defaultdict as _dd
+            per_creator: dict = _dd(list)
+            for u, lst in cmts.items():
+                cu = url_to_creator.get(u, "")
+                if cu:
+                    per_creator[cu].extend(lst)
+            for row in all_rows:
+                cs = per_creator.get(row.get("username") or "", [])
+                cs.sort(key=lambda c: c.get("likes", 0), reverse=True)
+                row["top_comments"] = cs[:3]
 
     if download_top_video and all_rows:
         top_urls = []
