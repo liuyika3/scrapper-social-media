@@ -542,10 +542,37 @@
   function saveLocalCache(){ try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch(e){} updateFavCount(); }
 
   function loadFavsFromServer(){
-    // try server first; fall back to local cache if server unreachable
+    // try server first; fall back to local cache if server unreachable.
+    // Migration: if server is empty but localStorage has favs from older version, push them up.
     return fetch('/api/favorites').then(function(r){return r.json();}).then(function(j){
-      if(j && j.ok){ favs = j.favorites || {}; saveLocalCache(); return favs; }
-      throw new Error(j && j.error || 'load failed');
+      if(!(j && j.ok)) throw new Error(j && j.error || 'load failed');
+      var serverFavs = j.favorites || {};
+      var localFavs = {};
+      try { var raw = localStorage.getItem(FAV_KEY); if(raw) localFavs = JSON.parse(raw) || {}; } catch(e){}
+      var serverKeys = Object.keys(serverFavs);
+      var localKeys = Object.keys(localFavs);
+      if(serverKeys.length === 0 && localKeys.length > 0){
+        console.log('[favs] migrating ' + localKeys.length + ' favs from localStorage to backend');
+        var pending = localKeys.length;
+        localKeys.forEach(function(k){
+          var f = localFavs[k]; if(!f || !f.creator){ pending--; return; }
+          fetch('/api/favorites/upsert', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({creator: f.creator}) })
+            .then(function(){
+              if(f.status === 'contacted'){
+                return fetch('/api/favorites/status', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username: f.creator.username, status:'contacted'})});
+              }
+            })
+            .then(function(){
+              if(f.aiAdvice){
+                return fetch('/api/favorites/save-ai', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username: f.creator.username, creator: f.creator, advice: f.aiAdvice})});
+              }
+            })
+            .finally(function(){ pending--; });
+        });
+        favs = localFavs; updateFavCount();
+        return favs;
+      }
+      favs = serverFavs; saveLocalCache(); return favs;
     }).catch(function(){
       try { var raw = localStorage.getItem(FAV_KEY); if(raw) favs = JSON.parse(raw) || {}; } catch(e){ favs = {}; }
       if(!favs || typeof favs !== 'object') favs = {};
